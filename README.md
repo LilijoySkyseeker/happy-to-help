@@ -4,7 +4,7 @@ An electropop music video about the AI discourse, sung by a very eager assistant
 
 The same tool finds cures and cons. The difference is the hand on the mouse.
 
-- **Watch:** [YouTube link goes here]
+- **Watch:** <https://youtu.be/lxwUIi_IHbg>
 - **Sources** for every event are in the video description.
 - **Want to make one like it with an AI coding agent?** Point it at [REPLICATE.md](REPLICATE.md). That file is written for the agent, not for you.
 
