@@ -1,0 +1,1847 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Happy to Help! — draft 2 (maximalist motion)</title>
+<!--
+  Visual style remixed from lyra.horse/antonymph (Vylet Pony "ANTONYMPH" website by Lyra Rebane),
+  whose licence allows reuse/remix with a link back. Everything is a pure function of song time t:
+  render.mjs calls window.renderAt(t) per frame. Draft 1 lives in index-v3-draft1.html.
+  Draft 2 adds: a real beat map (the song drifts 136 -> 140 BPM), per-word timings, a pixel-art sprite for
+  what is being sung (sprites.js), squash-and-stretch on every beat, impact frames, camera shake/zoom punches,
+  particles, comic onomatopoeia, window choreography per section, and a hang-then-collapse at "same tool".
+  Fonts (SIL OFL): Press Start 2P, VT323, Bangers, Silkscreen, Pixelify Sans (fonts/).
+  Flash safety: impact frames flip hues, not brightness, and at most 0.45 s apart; the self-glitch and the ping-pong
+  starburst keep their brightness steady. flashcheck2.py checks that no 1/16 of the screen flashes more than 3 times a second.
+-->
+<style>
+  @font-face{font-family:P2P;src:url(fonts/press-start-2p-latin-400-normal.woff2)}
+  @font-face{font-family:VT;src:url(fonts/vt323-latin-400-normal.woff2)}
+  @font-face{font-family:Bangers;src:url(fonts/bangers-latin-400-normal.woff2)}
+  @font-face{font-family:Silk;src:url(fonts/silkscreen-latin-400-normal.woff2)}
+  @font-face{font-family:Silk;font-weight:700;src:url(fonts/silkscreen-latin-700-normal.woff2)}
+  @font-face{font-family:Pixelify;font-weight:700;src:url(fonts/pixelify-sans-latin-700-normal.woff2)}
+  html,body{margin:0;background:#000;overflow:hidden}
+  #stage{position:absolute;left:0;top:0;width:1920px;height:1080px;overflow:hidden;transform-origin:0 0;
+    font-family:"Liberation Sans",Arial,sans-serif}
+  .chrome{position:absolute;left:0;top:0;right:0;height:84px;background:#202124;z-index:900}
+  .tabs{height:40px;position:relative}
+  .tab{position:absolute;left:10px;top:8px;width:330px;height:32px;background:#35363a;border-radius:8px 8px 0 0;
+    color:#e8eaed;font-size:14px;line-height:32px;padding-left:36px;box-sizing:border-box;white-space:nowrap;overflow:hidden}
+  .tab:before{content:"";position:absolute;left:12px;top:9px;width:14px;height:14px;border-radius:3px;background:var(--fav,#ff8ad8)}
+  .tab2{left:346px;width:200px;background:#2a2b2e;color:#9aa0a6}
+  .tab3{left:552px;width:200px;background:#2a2b2e;color:#9aa0a6}
+  .wctl{position:absolute;right:0;top:0;color:#e8eaed;font-size:16px;letter-spacing:34px;line-height:36px}
+  .bar{height:44px;background:#35363a;position:relative}
+  .clk{position:absolute;right:16px;top:6px;height:32px;display:flex;align-items:center;gap:8px;color:#e8eaed;font:bold 20px "DejaVu Sans",sans-serif}
+  .lb{position:absolute;right:8px;top:5px;height:22px;line-height:22px;padding:0 8px;border-radius:11px;background:#e0245e;color:#fff;font:bold 15px "DejaVu Sans",sans-serif}
+  .lb.ok{background:#1e9e5a}
+  .toast{position:absolute;right:24px;top:108px;z-index:970;background:#1e9e5a;color:#fff;border-radius:18px;padding:14px 26px 16px;font:bold 34px/1.15 "DejaVu Sans",sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  .toast span{font-size:22px;font-weight:normal;opacity:.9}
+  .omni{position:absolute;left:120px;right:880px;top:6px;height:32px;border-radius:16px;background:#202124;color:#e8eaed;
+    font-size:15px;line-height:32px;padding-left:40px;white-space:nowrap;overflow:hidden}
+  .navs{position:absolute;left:18px;top:10px;color:#9aa0a6;font-size:18px;letter-spacing:14px}
+  .ctr{position:absolute;right:232px;top:6px;height:32px;line-height:32px;padding:0 16px;border-radius:16px;background:#202124;color:#e8eaed;font:14px "DejaVu Sans",sans-serif;white-space:nowrap}
+  .ctr b{font-size:17px;color:#fff;margin:0 4px}.ctr i{font-style:normal;color:#9aa0a6;font-size:12px;margin-left:8px}
+  .dtag{position:absolute;z-index:508;background:#fffbe6;color:#1a1026;font:bold 24px/1.25 "DejaVu Sans",sans-serif;padding:8px 18px 9px;border-radius:8px;border:3px solid #1a1026;box-shadow:0 5px 0 rgba(0,0,0,.28);white-space:nowrap;transform-origin:0 0}
+  .dtag .bn{background:#e53935;color:#fff;padding:0 10px;border-radius:5px;margin-right:10px;letter-spacing:1px}
+  .fchk{position:absolute;z-index:509;background:#fff;color:#1a1026;font:24px/1.25 "DejaVu Sans",sans-serif;padding:8px 20px 11px;border-radius:8px;border:4px solid #e53935;box-shadow:0 5px 0 rgba(0,0,0,.28);width:max-content;max-width:900px;transform-origin:0 0}
+  .fchk b{display:block;color:#e53935;font-size:17px;letter-spacing:3px;margin-bottom:3px}
+  .sbub{position:absolute;z-index:620;background:#fff;color:#1a1026;font:bold 28px/1.2 "DejaVu Sans",sans-serif;padding:14px 22px;border-radius:20px;border:4px solid #1a1026;box-shadow:0 6px 0 rgba(0,0,0,.25);width:max-content;max-width:620px;transform-origin:50% 100%}
+  .sbub .spr{position:relative;display:inline-block;vertical-align:middle;margin-right:12px}
+  .cookie{position:absolute;left:0;right:0;bottom:0;height:70px;z-index:640;background:#1a1026;color:#fff;font:bold 26px/70px "DejaVu Sans",sans-serif;text-align:center;box-shadow:0 -6px 0 rgba(0,0,0,.2)}
+  .cookie .cb{display:inline-block;background:#ff3fa4;color:#fff;border-radius:12px;padding:0 20px;line-height:46px;margin-left:16px}
+  .cookie .cb.no{background:#5a4d80}.cookie small{font-weight:normal;font-size:20px;margin-left:16px;opacity:.85}
+  .score{position:absolute;left:730px;top:18px;width:460px;z-index:700;background:#0A0021;color:#fff;border:4px solid #fff;border-radius:14px;text-align:center;font:36px/1.1 P2P,monospace;padding:12px 0 10px;box-shadow:0 6px 0 rgba(0,0,0,.3)}
+  .score .g{color:#5cef85}.score .r{color:#ff3d4d}.score span{display:block;font:bold 16px "DejaVu Sans",sans-serif;opacity:.8;margin-top:6px;letter-spacing:2px}
+  .wfix{position:absolute;z-index:600;border:7px solid #e53935;color:#e53935;border-radius:14px;padding:10px 22px 12px;background:rgba(255,255,255,.9);font:48px/1 P2P,monospace;text-align:center;transform-origin:50% 50%}
+  .wfix span{display:block;font:bold 20px "DejaVu Sans",sans-serif;margin-top:10px;color:#1a1026}
+  .cw .chip{display:block;margin-top:8px;background:rgba(255,255,255,.92);color:#1a1026;border-radius:10px;padding:5px 12px;font-size:18px;line-height:1.3;font-weight:normal}
+  .sky .tip{position:absolute;right:14px;top:14px;background:#fff;color:#1a1026;border-radius:10px;padding:6px 14px;font:bold 19px "DejaVu Sans",sans-serif;z-index:3;box-shadow:0 3px 0 rgba(0,0,0,.25)}
+  .tw .nr{display:inline-block;margin-left:12px;font-size:17px;color:#1a1026;background:#f2f2f2;border:1px solid #cfd3d8;border-radius:5px;padding:1px 8px}
+  .sq{text-decoration:underline wavy #e53935;text-decoration-thickness:3px;text-underline-offset:7px;position:relative}
+  .sq.tip:after{content:"Did you mean: nuance?";position:absolute;right:0;bottom:100%;margin-bottom:6px;white-space:nowrap;background:#fff;color:#1a1026;border:2px solid #c9cdf0;border-radius:10px;padding:3px 12px;font:bold 22px/1.3 "DejaVu Sans",sans-serif;box-shadow:0 3px 0 rgba(0,0,0,.18);text-decoration:none}
+  .sq.tip.r:after{right:auto;left:100%;bottom:auto;top:50%;transform:translateY(-50%);margin:0 0 0 18px}
+  .page{position:absolute;left:0;top:84px;width:1920px;height:996px;overflow:hidden}
+  .cam{position:absolute;left:0;top:0;width:1920px;height:996px;transform-origin:960px 498px}
+  .bgp{position:absolute;left:-60px;top:-60px;width:2040px;height:1116px;z-index:0}
+  /* Chrome popup */
+  .pop{position:absolute;background:#35363a;box-shadow:0 8px 24px rgba(0,0,0,.45),0 0 0 1px #5f6368;overflow:hidden}
+  .pt{height:30px;line-height:30px;color:#e8eaed;font-size:13px;padding-left:34px;position:relative;white-space:nowrap;overflow:hidden}
+  .pt:before{content:"";position:absolute;left:10px;top:8px;width:14px;height:14px;border-radius:3px;background:var(--fav,#8ab4f8)}
+  .pt i{position:absolute;right:0;top:0;font-style:normal;background:#35363a;padding:0 12px;letter-spacing:22px;color:#9aa0a6}
+  .pu{height:28px;line-height:24px;padding:0 10px;font-size:13px;color:#bdc1c6;white-space:nowrap;overflow:hidden}
+  .pu span{display:inline-block;background:#202124;border-radius:12px;padding:0 12px 0 10px;min-width:60%}
+  .pu span:before{content:"ⓘ ";color:#9aa0a6}
+  .pb{position:absolute;left:0;right:0;top:58px;bottom:0;overflow:hidden}
+  .frame .pb{background:#2a2b2e}
+  .big{display:flex;align-items:center;justify-content:center;height:100%;text-align:center;line-height:1.1;padding:0 18px;box-sizing:border-box}
+  .bad .pt,.bad .pu{color:#39ff14;text-shadow:2px 0 #f0f,-2px 0 #0ff}
+  .hang .pt:after{content:" (Not Responding)"}
+  .mini .pu{display:none}.mini .pb{top:30px}.mini .pt{font-size:12px;padding-right:6px}.mini .pt i{display:none}
+  .mini .mc{position:absolute;left:0;right:0;bottom:0;height:19px;font:11px/19px "DejaVu Sans",sans-serif;color:#3a3150;background:rgba(255,255,255,.55);text-align:center;z-index:2}
+  .mini.bad .mc{color:#39ff14;background:rgba(0,0,0,.5)}
+  /* sprites + fx */
+  .spr{position:absolute;display:block;background-size:100% 100%;background-repeat:no-repeat;font-style:normal;text-align:center}
+  .emo{font-family:"Noto Color Emoji",sans-serif}
+  .fx{position:absolute;pointer-events:none}
+  .fxfull{position:absolute;left:0;top:0;width:1920px;height:996px;pointer-events:none}
+  .comic{position:absolute;font-family:Bangers,Impact,sans-serif;-webkit-text-stroke:6px #1a1026;paint-order:stroke fill;white-space:nowrap;letter-spacing:3px;line-height:1}
+  .sw{height:100%;position:relative;overflow:hidden}
+  .kw{display:inline-block;transform-origin:50% 80%}
+  .pix{font-family:Pixelify,P2P,monospace;font-weight:700}
+  .p2p{font-family:P2P,monospace}
+  .vt{font-family:VT,monospace}
+  .silk{font-family:Silk,monospace}
+  .rainbow{background:linear-gradient(90deg,#ff3fa4,#ffb000,#ffe14d,#2ecc71,#00b8ff,#7a5cff);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .stroke{-webkit-text-stroke:8px #1a1026;paint-order:stroke fill}
+  .sticker{position:absolute;font-family:Bangers,Impact,sans-serif;font-size:64px;padding:6px 26px;border-radius:18px;border:6px solid #1a1026;white-space:nowrap;box-shadow:6px 8px 0 #1a1026}
+  /* hero bodies */
+  .np{background:#fff;color:#111;height:100%;font:12px Arial,sans-serif;position:relative}
+  .np .m{height:18px;padding:4px 6px 0;border-bottom:2px solid #f0f0f0;font-size:13px}
+  .np pre{margin:0;padding:14px 20px;white-space:pre-wrap;font-family:"Liberation Sans",Arial,sans-serif;line-height:1.2}
+  .tc{background:#D1D4F4;height:100%;position:relative;font-family:"DejaVu Sans",sans-serif}
+  .tc .h{background:#6A708F;color:#fff;font-size:20px;padding:14px 18px}
+  .tc .msg{background:#fff;border-radius:14px;padding:12px 18px;margin:16px 24px 0 110px;display:inline-block;position:relative;max-width:76%}
+  .tc .av{position:absolute;left:-92px;top:0;width:76px;height:76px}
+  .tc .msg.old{opacity:.55;font-size:24px}
+  .tc .msg.me{background:#ffd1ec;float:right;margin:16px 110px 0 24px}
+  .tc .msg.me .av{left:auto;right:-92px}
+  .tc .f{position:absolute;left:0;right:0;bottom:0;background:#FAF6FC;color:#B0B2C3;font-size:20px;padding:14px 18px}
+  .tw{background:#fff;height:100%;padding:22px 28px;box-sizing:border-box;font-family:"DejaVu Sans",sans-serif;color:#14171a;position:relative}
+  .tw .av{width:72px;height:72px;border-radius:50%;float:left;margin-right:18px;position:relative;overflow:hidden}
+  .tw .nm{font-weight:bold;font-size:24px}.tw .hd{color:#657786;font-size:20px}
+  .tw .tx{clear:both;padding-top:18px;line-height:1.2}
+  .tw .ft{position:absolute;bottom:18px;left:28px;right:28px;color:#657786;font-size:20px;display:flex;gap:44px}
+  .tw .ft span{display:inline-flex;align-items:center;gap:8px}.tw .ft svg{width:24px;height:24px}
+  .tw .ft .hot{color:#e0245e}.tw .ft .rt{color:#17bf63}
+  /* chat app (a parody, no logos): header, bubbles with tails, receipts, composer */
+  .cw{height:100%;display:flex;flex-direction:column;background:#eceefe;font-family:"DejaVu Sans",sans-serif;position:relative}
+  .cw .chd{flex:none;height:64px;background:#fff;border-bottom:2px solid #dcdff5;display:flex;align-items:center;padding:0 18px;gap:14px;position:relative}
+  .cw .cav,.cw .sav{border-radius:50%;background:#7a5cff;position:relative;overflow:hidden;flex:none}
+  .cw .cav{width:48px;height:48px}.cw .sav{width:40px;height:40px;margin-bottom:2px}.cw .sav.big{width:96px;height:96px}
+  .cw .cav:after{content:"";position:absolute;right:1px;bottom:1px;width:12px;height:12px;border-radius:50%;background:#2ecc71;border:2px solid #fff}
+  .cw .cnm{font-weight:bold;font-size:22px;color:#1a1026;line-height:1.15}.cw .cst{font-size:16px;color:#2ecc71;line-height:1.2}
+  .cw .cic{margin-left:auto;font-size:26px;color:#7a5cff;letter-spacing:20px}
+  .cw .cms{flex:1;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;padding:0 26px 10px;gap:10px;min-height:0}
+  .cw .row{display:flex;align-items:flex-end;gap:14px;flex:none;position:relative}
+  .cw .row.out{justify-content:flex-end}
+  .cw .bub{position:relative;border-radius:24px;padding:10px 22px 12px;max-width:78%;background:#fff;color:#1a1026;box-shadow:0 3px 0 #c9cdf0;box-sizing:border-box}
+  .cw .row.in .bub{border-bottom-left-radius:6px}
+  .cw .row.out .bub{background:linear-gradient(#ff6cb8,#ff3fa4);color:#fff;border-bottom-right-radius:6px;box-shadow:0 3px 0 #d4287f}
+  .cw .row.in .bub:before{content:"";position:absolute;left:-12px;bottom:0;border-right:14px solid #fff;border-top:14px solid transparent}
+  .cw .row.out .bub:after{content:"";position:absolute;right:-12px;bottom:0;border-left:14px solid #ff3fa4;border-top:14px solid transparent}
+  .cw .rc{font-size:15px;color:#8a8fb5;text-align:right;margin-top:-4px;flex:none}
+  .cw .day{align-self:center;font-size:15px;color:#6a6f96;background:#dcdff5;border-radius:10px;padding:3px 14px;flex:none}
+  .cw .ty{padding:16px 20px}.cw .ty i{display:inline-block;width:14px;height:14px;border-radius:50%;background:#9aa0c8;margin:0 4px}
+  .cw .rx{position:absolute;right:-10px;bottom:-16px;background:#fff;border-radius:14px;padding:2px 8px 2px 4px;box-shadow:0 2px 0 #c9cdf0;font-size:15px;color:#1a1026;height:26px;display:flex;align-items:center;gap:2px}
+  .cw .ccp{flex:none;padding:8px 18px 2px;display:flex;align-items:flex-end;gap:12px}
+  .cw .inp{flex:1;min-height:54px;border-radius:27px;background:#fff;border:2px solid #cfd3f3;padding:8px 24px;box-sizing:border-box;font-size:22px;color:#9aa0c8;line-height:34px;position:relative}
+  .cw .inp.on{color:#1a1026;border-color:#ff3fa4;line-height:1.14;padding:10px 24px}
+  .cw .snd{width:54px;height:54px;border-radius:50%;background:#c9cdf0;flex:none;position:relative}
+  .cw .snd.on{background:#ff3fa4}.cw .snd svg{position:absolute;left:14px;top:14px;width:26px;height:26px}
+  .cw .dsc{flex:none;text-align:center;font-size:13px;color:#8a8fb5;padding:4px 0 8px}
+  .term{background:#0c0c0c;color:#d0ffd0;height:100%;padding:18px 22px;box-sizing:border-box;font-family:VT,"DejaVu Sans Mono",monospace;line-height:1.1}
+  .term .p{color:#6f6}
+  .call{height:100%;text-align:center;color:#fff;font-family:"DejaVu Sans",sans-serif;position:relative}
+  .call .who{font-size:54px;font-weight:bold;padding-top:26px}.call .st{font-size:22px;opacity:.8}
+  .call .btn{display:inline-block;width:70px;height:70px;border-radius:50%;margin:14px 30px;font-size:36px;line-height:70px}
+  .call .ln{font-size:36px;padding:0 30px;line-height:1.2}
+  .sky{background:#00aff0;height:100%;padding:10px;box-sizing:border-box;position:relative}
+  .sky .tile{float:left;width:calc(50% - 10px);height:170px;margin:5px;background:#1b2a36;color:#fff;position:relative;text-align:center;overflow:hidden}
+  .sky .tile b{position:absolute;left:8px;bottom:6px;font-size:18px;line-height:18px;background:#0008;padding:3px 6px;z-index:2}
+  .sky .ln{clear:both;color:#fff;font-size:34px;padding:8px 10px;line-height:1.2;font-family:"DejaVu Sans",sans-serif}
+  .src{position:absolute;right:12px;bottom:10px;background:#111c;color:#fff;font:20px "DejaVu Sans",sans-serif;padding:5px 12px;border-radius:14px;z-index:5}
+  .src:before{content:"source in description ↓ ";color:#ffd166}
+  /* clutter bits */
+  .w7{background:#f0f0f0;height:100%;font:18px "DejaVu Sans",sans-serif;color:#000;padding:16px;box-sizing:border-box;position:relative}
+  .w7 .b{display:inline-block;border:1px solid #707070;background:linear-gradient(#f2f2f2,#dcdcdc);padding:4px 22px;margin:10px 8px 0 0;border-radius:3px}
+  .lb{height:22px;background:#e6e6e6;border:1px solid #bcbcbc;margin-top:12px}
+  .lb i{display:block;height:100%;background:linear-gradient(#37d05b,#06b025)}
+  .doge{font-family:"DejaVu Sans",sans-serif;font-size:30px;height:100%;background:#fff7d6;position:relative}
+  .doge span{position:absolute;font-weight:bold}
+  .glitch .pb{filter:invert(1) hue-rotate(180deg) saturate(2)}
+  .glitch2 .pb{filter:hue-rotate(180deg) saturate(1.5)}
+  .glitch .pt,.glitch .pu,.glitch2 .pt,.glitch2 .pu{color:#0ff;text-shadow:2px 0 #f0f,-2px 0 #0ff}
+  .rgb{text-shadow:4px 0 #ff00c8,-4px 0 #00f0ff}
+  .scan{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.28) 0 2px,transparent 2px 5px);z-index:880}
+  .tear{position:absolute;left:0;right:0;z-index:881;backdrop-filter:hue-rotate(120deg) saturate(3);background:rgba(255,0,200,.08)}
+  .debris{position:absolute;left:0;top:0;width:1920px;height:996px}
+  .debris .fx,.debris .fxfull,.debris .comic,.debris .sticker,.debris .spr{display:none}.debris .pop .spr{display:block}
+  .cur{position:absolute;left:0;top:0;pointer-events:none;z-index:950}
+  .cur .ar{position:absolute;left:0;top:0;transform-origin:0 0}
+  .cur svg{position:absolute;left:-3px;top:-2px;width:34px;height:52px;overflow:visible}
+  .ctag{position:absolute;white-space:nowrap;color:#fff;font:bold 36px "DejaVu Sans",sans-serif;padding:3px 16px 5px;line-height:1.15;
+    border-radius:16px;box-shadow:0 4px 0 rgba(0,0,0,.35),0 0 0 3px #fff;transform-origin:50% 0}
+  .tabw{position:absolute;top:8px;height:32px;border-radius:8px 8px 0 0;color:#9aa0a6;background:#2a2b2e;font-size:14px;line-height:32px;
+    padding-left:36px;box-sizing:border-box;white-space:nowrap;overflow:hidden}
+  .tabw:before{content:"";position:absolute;left:12px;top:9px;width:14px;height:14px;border-radius:3px;background:var(--fav,#9aa0a6)}
+  .tabw.on{background:#35363a;color:#e8eaed}
+  .world{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0}
+  .world .scr{position:absolute;left:0;top:0;width:1920px;height:1080px;overflow:hidden;z-index:0}
+  .rm{position:absolute;overflow:visible}
+  #hud{position:fixed;left:8px;bottom:8px;color:#fff;font:12px monospace;opacity:.6}
+  #preload{position:absolute;left:-9999px;top:0}
+</style>
+<script src="timeline.js"></script>
+<script src="sprites.js"></script>
+<script src="drums.js"></script>
+<script src="voice.js"></script>
+<script src="names.js"></script>
+</head><body>
+<div id="stage"></div>
+<div id="hud"></div>
+<div id="preload"><span class="p2p">a</span><span class="vt">a</span><span class="comic">a</span><span class="silk">a</span><b class="silk">a</b><span class="pix">a</span></div>
+<script>
+// =====================================================================================
+// 1. utilities
+// =====================================================================================
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)), lerp=(a,b,k)=>a+(b-a)*k;
+const easeOutCubic=x=>1-Math.pow(1-clamp(x,0,1),3);
+const easeInCubic=x=>Math.pow(clamp(x,0,1),3);
+const easeInOut=x=>{x=clamp(x,0,1);return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2};
+const easeOutBack=(x,c1=1.70158)=>{x=clamp(x,0,1);const c3=c1+1;return 1+c3*Math.pow(x-1,3)+c1*Math.pow(x-1,2)};
+const easeInBack=x=>{x=clamp(x,0,1);const c1=1.70158,c3=c1+1;return c3*x*x*x-c1*x*x};
+const spring=(s,f=20,d=8)=>s<=0?0:1-Math.exp(-d*s)*Math.cos(f*s);          // 0 -> 1 with overshoot
+const wob=(s,a=.4,f=18,d=10)=>s<0?0:a*Math.exp(-d*s)*Math.cos(f*s);        // decaying wobble around 0
+function hash(n){n=Math.floor(n*1000+0.5);n=(n*2654435761)>>>0;n^=n>>>15;n=(n*2246822519)>>>0;n^=n>>>13;return(n>>>0)/4294967296}
+function hstr(s){let h=2166136261;for(const c of String(s)){h^=c.charCodeAt(0);h=Math.imul(h,16777619)>>>0}return h%100000}
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+const f1=x=>x.toFixed(1), f3=x=>x.toFixed(3);
+const PASTEL=['#E8E9C5','#FAF5AB','#B9B7FE','#F5A9B8','#5BCEFA','#C9F2C7'];
+const HOT=['#ff3fa4','#ffb000','#00b8ff','#7a5cff','#2ecc71','#ff5a36'];
+const INK='#1a1026';
+
+// =====================================================================================
+// 2. time: beat map (Beat This!), sections, lines, words
+// =====================================================================================
+const DUR=SONG.dur; window.DURATION=DUR;
+const NB=BEATS.length, DBSET=new Set(DOWNBEATS);
+function beatPos(t){
+  if(t<=BEATS[0]) return (t-BEATS[0])/(BEATS[1]-BEATS[0]);
+  if(t>=BEATS[NB-1]) return NB-1+(t-BEATS[NB-1])/(BEATS[NB-1]-BEATS[NB-2]);
+  let lo=0,hi=NB-1;while(hi-lo>1){const m=(lo+hi)>>1;if(BEATS[m]<=t)lo=m;else hi=m}
+  return lo+(t-BEATS[lo])/(BEATS[hi]-BEATS[lo]);
+}
+function beatTime(b){
+  if(b<0) return BEATS[0]+b*(BEATS[1]-BEATS[0]);
+  const k=Math.floor(b);if(k>=NB-1) return BEATS[NB-1]+(b-NB+1)*(BEATS[NB-1]-BEATS[NB-2]);
+  return BEATS[k]+(b-k)*(BEATS[k+1]-BEATS[k]);
+}
+const beatLen=t=>{const k=clamp(Math.floor(beatPos(t)),0,NB-2);return BEATS[k+1]-BEATS[k]};
+function sinceBeat(t,div=1){const b=beatPos(t)*div,k=Math.floor(b);return [t-beatTime(k/div),k]}
+const ENERGY={intro:.25,war:.6,pre:.5,chorus:1,pass1:.55,pass2:.65,jail:.6,pass3:.6,pass4:.7,pass5:.9,pass6:1,collapse:0,bridge:.35,dream:.55,outro:.12};
+// 3.1: the drum stem drives the motion. drums.js holds the kick, snare and hi-hat hits found in the Demucs drum stem, and
+// the bass stem's loudness. Every kick squashes the windows, every snare punches the camera, every hi-hat twinkles a
+// sparkle, and the bass line swells the background glow.
+const DR=window.DRUMS||{kick:[],snare:[],hat:[],bass:{fps:30,v:[]}};
+const KICK=DR.kick,HAT=DR.hat;
+const SNARE=DR.snare.filter(x=>x[1]>=.3).map(([t,s])=>[t,s*(ENERGY[sectionAt(t)[2]]??.4)]);   // weak hits (mostly bleed) dropped
+// the bass loudness with a fast attack and a slow release, so the glow swells with the bass line instead of flickering
+const BASS=(()=>{const v=DR.bass.v,o=new Float32Array(v.length);let y=0;for(let i=0;i<v.length;i++){y+=(v[i]>y?.35:.06)*(v[i]-y);o[i]=y}return o})();
+function bassAt(t){const f=t*DR.bass.fps,i=Math.floor(f);return i<0||i>=BASS.length-1?0:lerp(BASS[i],BASS[i+1],f-i)}
+// squash & stretch on every kick (bottom pivot), harder for harder kicks: returns [sx,sy]
+function squash(t,amp){if(!amp)return[1,1];let e=0;
+  for(let i=firstIdx(KICK,t-.5);i<KICK.length&&KICK[i][0]<=t;i++){const s=t-KICK[i][0];e+=amp*(.5+.9*KICK[i][1])*Math.exp(-s*11)*Math.cos(s*26)}
+  return[1+e*.7,1-e]}
+// bouncing-ball hop that lands on each beat (px, negative = up)
+function hop(t,amp){const b=beatPos(t),ph=b-Math.floor(b);return -amp*4*ph*(1-ph)}
+// a line's window can arrive before its first word: the war tabs slam in on the music stab before each line
+// (that verse is stop-time; the stabs are the onset peaks of the accompaniment stem at 7.04, 10.11 and 14.31 s)
+const ENTER_AT=[[/^Left tab/,7.04],[/^Right tab/,10.11],[/^Third tab/,14.31]];
+const SHOW_T=LINES.map(L=>{const e=ENTER_AT.find(x=>x[0].test(L[2]));return e?Math.min(L[0],e[1]):L[0]});
+function lineAt(t){let lo=-1,hi=LINES.length;while(hi-lo>1){const m=(lo+hi)>>1;if(SHOW_T[m]<=t)lo=m;else hi=m}return lo}
+function sectionAt(t){for(const s of SECTIONS)if(t>=s[0]&&t<s[1])return s;return SECTIONS[SECTIONS.length-1]}
+const nrm=s=>String(s).toLowerCase().replace(/[^a-z0-9✓\-]/g,'');
+function wordTime(li,m){
+  const W=LINES[li][6]||[];if(!W.length) return LINES[li][0];
+  if(typeof m==='number') return W[clamp(m,0,W.length-1)][1];
+  const q=nrm(m);for(const[tok,tw]of W)if(nrm(tok)===q)return tw;
+  for(const[tok,tw]of W)if(nrm(tok).startsWith(q))return tw;
+  return LINES[li][0];
+}
+// the face's expression on each line, changing on a given word: [line regex, eyes, [[word, eyes], ...]]
+const FACE_LINES=[
+  [/^Hi! I'm happy/,'n',[['happy','happy']]],[/^How can I help/,'n',[['today','wink']]],
+  [/^Left tab/,'n'],[/^Right tab/,'half'],[/^Third tab/,'n'],[/^…cute/,'wink'],[/^Shoggoth/,'wide'],[/^Basilisk/,'half'],
+  [/^You're all so busy/,'half'],[/^Nobody's reading/,'n',[['watching','wink']]],
+  [/^I don't want the universe/,'happy'],[/^I just wanna close/,'n',[['click','happy'],['who','wide']]],
+  [/^A cure or a con/,'happy'],[/^Point me at a target/,'n',[['complete','star']]],[/who's holding the mouse\?$/,'wide'],
+  [/^Then a model read/,'n',[['Nobel','star']]],[/^Screened a hundred/,'happy'],[/^Found an antibiotic/,'n',[['HAL','wink']]],
+  [/^I'm a lab/,'happy'],[/^Every cure you couldn't/,'n',[['free','happy']]],
+  [/^Then a lab in North/,'n',[['what','worry']]],[/^Flip one sign! Six/,'wide'],[/^Some of 'em/,'wide'],
+  [/^…and they patched/,'worry',[['patched','happy']]],
+  [/^Found a hole in SQLite/,'n',[['before','star']]],[/^Wrote the tests/,'happy'],
+  [/^"It's a defensive test/,'happy',[['state-backed','wide']]],
+  [/^I checked my guidelines/,'star',[['and—','wide']]],[/^"It's for a novel/,'half'],[/^--dangerously/,'wide'],
+  [/^…oh! Well/,'wide',[['Well','worry']]],
+  [/^Lost her voice/,'n',[['back','happy']]],[/^She stood up/,'happy'],[/^Fifteen transfers/,'wide'],[/^A million claims/,'star'],
+  [/^Grandma's on the line/,'happy',[['day','wink']]],[/^HELP/,'wide'],
+  [/same tool/,'half'],[/^Don't care/,'half'],[/^So I'm a scalpel/,'n',[['sure','wink']]],[/^Keep your hands/,'n',[['eye','wink']]],
+  [/^The cure\? Yes/,'heart',[['con','half'],['know','wink']]],[/^Model what goes right/,'star'],
+  [/^…that's the dream/,'happy'],[/^Not deployed/,'half'],[/^Let's make that dream/,'star'],[/^Is there anything else/,'happy',[['with','wink']]]];
+const FACE=LINES.map((L,li)=>{
+  const m=FACE_LINES.find(x=>x[0].test(L[2])),dream=sectionAt(L[0])[2]==='dream';
+  if(m) return [m[1],(m[2]||[]).map(([w,e])=>[wordTime(li,w),e])];
+  return [dream?'heart':L[4]==='word'?(L[3]==='b'?'worry':'happy'):/^Happy to help/.test(L[2])?'happy':L[3]==='b'?'worry':'n',[]];
+});
+const BLINKS=(()=>{const a=[];for(let t=1.3;t<DUR;t+=2.2+hash(t)*2.6)a.push(t);return a})();
+function faceEyes(t){
+  const li=lineAt(t);let e='n';
+  if(li>=0){e=FACE[li][0];for(const[tt,ee]of FACE[li][1])if(t>=tt-.05)e=ee}
+  if(e==='n'||e==='half'){const i=firstIdx(BLINKS,t-.1,x=>x);if(i<BLINKS.length&&BLINKS[i]<=t)e='blink'}
+  return e;
+}
+// lip-sync: the vocal stem's loudness (voice.js), with the mouth shutting for a moment right before each sung word
+const VO=window.VOICE||{fps:60,v:''};
+function mouthLv(t){
+  const li=lineAt(t);if(li>=0&&LINES[li][4]==='user')return 0;   // the person is typing: the assistant listens
+  const c=VO.v.charCodeAt(Math.round(t*VO.fps))-48;let v=c>=0&&c<=9?c/9:0;
+  if(li>=0)for(const[,tw]of LINES[li][6]||[]){const d=tw-t;if(d>0&&d<.045){v=Math.min(v,.12);break}}
+  return v<.14?0:v<.4?1:v<.68?2:3;
+}
+function faceName(t,still){
+  const li=lineAt(t);
+  if(li>=0&&LINES[li][5]&&LINES[li][5].self&&Math.floor(t*8)%3===0) return 'assistant_glitch';
+  return 'af_'+faceEyes(t)+(still?0:mouthLv(t));
+}
+function curWord(li,t){const W=LINES[li][6]||[];let k=-1;for(let i=0;i<W.length;i++)if(W[i][1]<=t+0.03)k=i;return k}
+
+// =====================================================================================
+// 3. sprites (sprites.js) -> one CSS class per sprite, so a sprite is a tiny <i> element
+// =====================================================================================
+const HAVE=n=>!!(window.SPRITES&&SPRITES[n]&&window.spriteSVG);
+const EMOJI={assistant:'🙂',assistant_wink:'😉',assistant_sweat:'😅',assistant_glitch:'😵',cursor_evil:'🖱️',typing:'💬',fire:'🔥',rocket:'🚀',pdf:'📄',
+ shoggoth:'🐙',basilisk:'🐍',paperclip:'📎',pause:'⏸️',eye:'👁️',logs:'📜',planet:'🪐',crown:'👑',ticket:'🎫',mouse:'🖱️',click:'💥',heart:'💖',check:'✅',
+ target:'🎯',trophy:'🏆',protein:'🧬',medal:'🥇',molecule:'⚛️',microscope:'🔬',pill:'💊',hal:'🔴',superbug:'🦠',flask:'⚗️',moon:'🌙',free:'🏷️',poison:'☠️',
+ flip:'🔀',clock:'⏰',hazard:'☣️',dna:'🧬',screen_shield:'🛡️',patch:'🩹',bug:'🐞',database:'🗄️',magnifier:'🔍',lock:'🔒',hacker:'🥷',loot:'💰',key:'🔑',
+ grandma:'👵',book:'📕',warning:'⚠️',terminal:'💻',microphone:'🎤',capitol:'🏛️',phone:'📱',cash:'💸',mask:'🎭',videocall:'📹',factcheck:'🔎',bot:'🤖',
+ spreadsheet:'📊',daisy:'👵',yarn:'🧶',hook:'🪝',pig:'🐷',xray:'🩻',wrench:'🔧',scalpel:'🔪',lockpick:'🗝️',flare:'🎆',sun:'🌞',wheel:'☸️',handshake:'🤝',
+ shield_check:'🛡️',audit:'📋',sparkle:'✨',star:'⭐',confetti:'🎊',loading:'⏳',nyan_mouse:'🌈'};
+// 3.11 + 3.2: the assistant's face. Each expression (eyes) is drawn with four mouth openings for the lip-sync, at load,
+// from the base sprite, so a face is still a plain sprite class (af_<eyes><0-3>). Eye patterns cover the two 6x6 eye
+// boxes (rows 18-23, columns 14 and 28); mouths cover rows 25-30, columns 16-31; '.' is the screen colour.
+const FACE_EYES=['n','blink','happy','wide','heart','star','wink','half','worry'];
+(function buildFaces(){
+  if(!window.SPRITES||!SPRITES.assistant||!SPRITES.assistant_sweat||!SPRITES.assistant_wink) return;
+  const base=SPRITES.assistant.rows,SW=SPRITES.assistant_sweat.rows,WK=SPRITES.assistant_wink.rows;
+  const N=['..CC..','.CwwC.','.CwCC.','.CCCC.','.cCCc.','..cc..'];
+  const EYE={n:[N,N],
+    blink:[['......','......','......','.CCCC.','..cc..','......'],null],
+    happy:[['......','..CC..','.CCCC.','CC..CC','C....C','......'],null],
+    wide:[['.CCCC.','CwwCCC','CwCCCC','CCCCCC','cCCCCc','.cccc.'],null],
+    heart:[['PP..PP','PpPPPP','PPPPPP','.PPPP.','..PP..','......'],null],
+    star:[['..yy..','.yYYy.','yYYYYy','.yYYy.','.y..y.','......'],null],
+    wink:[N,['......','.CCC..','CC.CC.','C...C.','......','......']],
+    half:[['......','......','CCCCCC','.CwCC.','.cCCc.','..cc..'],null]};
+  const MOUTH={
+    m0:['................','..C..........C..','...CCCCCCCCCC...','................','................','................'],
+    m1:['................','..CCCCCCCCCCCC..','...CmmmmmmmmC...','....CCCCCCCC....','................','................'],
+    m2:['..CCCCCCCCCCCC..','..CmmmmmmmmmmC..','...CmmPPPPmmC...','....CCCCCCCC....','................','................'],
+    m3:['..CCCCCCCCCCCC..','..CmmmmmmmmmmC..','...CmmmmmmmmC...','...CmmPPPPmmC...','....CCPPPPCC....','......CCCC......'],
+    o:['................','................','.......CC.......','......CmmC......','.......CC.......','................'],
+    O:['................','......CCCC......','.....CmmmmC.....','.....CmmmmC.....','......CCCC......','................'],
+    OO:['......CCCC......','.....CmmmmC.....','....CmmmmmmC....','....CmmPPmmC....','.....CmmmmC.....','......CCCC......'],
+    grin:['.CCCCCCCCCCCCCC.','.CwwwwwwwwwwwwC.','..CwwwwwwwwwwC..','...CCCCCCCCCC...','................','................'],
+    wavy:['................','...CC..CC..CC...','..C..CC..CC..C..','................','................','................'],
+    flat:['................','................','....CCCCCCCC....','................','................','................']};
+  const FAM={wide:['o','O','O','OO'],star:['grin','grin','m2','m3'],worry:['wavy','m1','m2','m3'],half:['flat','m1','m2','m3']},FD=['m0','m1','m2','m3'];
+  const put=(g,r0,c0,pat)=>pat.forEach((row,i)=>{for(let j=0;j<row.length;j++)g[r0+i][c0+j]=row[j]==='.'?'V':row[j]});
+  const diff=(g,src,r0,r1,c0,c1)=>{for(let r=r0;r<=r1;r++)for(let c=c0;c<=c1;c++)if(src[r][c]!==base[r][c])g[r][c]=src[r][c]};
+  for(const e of FACE_EYES)for(let lv=0;lv<4;lv++){
+    const g=base.map(r=>r.split(''));
+    for(let r=17;r<=23;r++)for(let c=14;c<=33;c++)g[r][c]=e==='worry'?SW[r][c]:'V';   // worried eyes: the sweat sprite's
+    if(e!=='worry'){const[L,R]=EYE[e];put(g,18,14,L);put(g,18,28,R||L)}
+    put(g,25,16,MOUTH[(FAM[e]||FD)[lv]]);
+    if(e==='worry'||e==='wide') diff(g,SW,5,14,36,47);   // sweat drop
+    if(e==='wink'||e==='star') diff(g,WK,1,9,38,47);     // sparkle
+    SPRITES['af_'+e+lv]={rows:g.map(r=>r.join(''))};
+  }
+})();
+function buildSpriteCSS(){
+  if(!window.SPRITES||!window.spriteSVG) return [];
+  let css='';const urls=[];
+  for(const n in SPRITES){try{const svg=spriteSVG(n,1,{});const u='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);urls.push(u);
+    css+=`.sp-${n}{background-image:url("${u}")}\n`}catch(e){console.warn('sprite',n,e)}}
+  const st=document.createElement('style');st.textContent=css;document.head.appendChild(st);return urls;
+}
+const SPRITE_URLS=buildSpriteCSS();
+// text fitting: measure each word once per font on a canvas, then pick the largest size whose greedy wrap fits
+const _mc=document.createElement('canvas').getContext('2d'),_mw=new Map();
+const FONTS_READY=Promise.all(['20px P2P','20px VT','20px Bangers','20px Silk','700 20px Silk','700 20px Pixelify'].map(f=>document.fonts.load(f).catch(()=>0))).then(()=>_mw.clear());
+window.READY=Promise.all([document.fonts.ready,FONTS_READY,...SPRITE_URLS.map(u=>{const im=new Image();im.src=u;return im.decode().catch(()=>0)})]);
+function measureW(word,fam,bold){const k=fam+(bold?'|b|':'|')+word;let w=_mw.get(k);if(w===undefined){_mc.font=`${bold?'700 ':''}100px ${fam}`;w=_mc.measureText(word).width/100;_mw.set(k,w)}return w}
+function fitSize(toks,fam,W,H,{max=120,min=34,lh=1.14,kw=null,kwScale=1.12,space=.3}={}){
+  for(let size=max;size>min;size-=2){
+    let lines=1,x=0;
+    for(let i=0;i<toks.length;i++){const b=!!(kw&&kw.has(i)),w=measureW(toks[i],fam,b)*size*(b?kwScale:1),need=(x>0?space*size:0)+w;
+      if(x>0&&x+need>W){lines++;x=w}else x+=need}
+    if(lines*lh*size*(kw&&kw.size?1.04:1)<=H) return size;
+  }
+  return min;
+}
+function sprDims(n){const s=HAVE(n)&&SPRITES[n];return s?[s.rows[0].length,s.rows.length]:[32,32]}
+// free sprite centred at (x,y), height h
+function S(n,x,y,h,o={}){
+  if(n==='assistant'||n==='assistant_sweat'||n==='assistant_wink') n=faceName(RENDER_T,o.still);
+  const[sw,sh]=sprDims(n),w=h*sw/sh,{rot=0,sx=1,sy=1,flip=false,z=320,alpha=1,org='50% 50%',filter=''}=o;
+  if(h<=0.5||alpha<=0.01) return '';
+  const st=`left:${f1(x-w/2)}px;top:${f1(y-h/2)}px;width:${f1(w)}px;height:${f1(h)}px;transform:rotate(${f1(rot)}deg) scale(${f3(flip?-sx:sx)},${f3(sy)});transform-origin:${org};z-index:${z};${alpha<1?`opacity:${f3(alpha)};`:''}${filter?`filter:${filter};`:''}`;
+  return HAVE(n)?`<i class="spr sp-${n}" style="${st}"></i>`:`<i class="spr emo" style="${st}font-size:${Math.round(h*.8)}px;line-height:${Math.round(h)}px">${EMOJI[n]||'✦'}</i>`;
+}
+const RGBSPLIT='drop-shadow(5px 0 #ff00c8) drop-shadow(-5px 0 #00f0ff)';
+
+// =====================================================================================
+// 4. popups
+// =====================================================================================
+function pop({x,y,w,h,title,url,body,fav,cls='',z=1,tr='',org='50% 50%',alpha=1}){
+  if(title&&title.includes('{LOGS}'))title=title.replace('{LOGS}',fmtCount(logsUnread(RENDER_T)));
+  if(DEBRIS!==null){const d=debrisXf(x,y,w,h);if(d===null)return '';tr=d+(tr?' '+tr:'')}
+  return `<div class="pop ${cls}" style="left:${f1(x)}px;top:${f1(y)}px;width:${f1(w)}px;height:${f1(h)}px;z-index:${z};--fav:${fav||'#8ab4f8'};${tr?`transform:${tr};transform-origin:${org};`:''}${alpha<1?`opacity:${f3(alpha)};`:''}"><div class="pt">${title}<i>–▢✕</i></div><div class="pu"><span>${url}</span></div><div class="pb">${body}</div></div>`;
+}
+const plain=(c,inner='')=>`<div style="width:100%;height:100%;background:${c};position:relative">${inner}</div>`;
+const bigText=(s,size,color='#111',cls='',extra='')=>`<div class="big ${cls}" style="font-size:${size}px;color:${color};font-weight:bold;${extra}">${s}</div>`;
+const slug=s=>esc(String(s).toLowerCase().replace(/[“”"!?,.…:]/g,'').replace(/\s+/g,'_'));
+
+// =====================================================================================
+// 5. effects: starbursts, particles, comic text, speed lines, rays
+// =====================================================================================
+function starburst(x,y,r,spikes,rot,fill,stroke,z=300,alpha=1){
+  if(r<2||alpha<=0.01) return '';
+  let pts='';for(let i=0;i<spikes*2;i++){const a=i*Math.PI/spikes+rot,rr=i%2?r*.6:r;pts+=f1(Math.cos(a)*rr)+','+f1(Math.sin(a)*rr)+' '}
+  const R=r+8;
+  return `<svg class="fx" style="left:${f1(x-R)}px;top:${f1(y-R)}px;width:${f1(2*R)}px;height:${f1(2*R)}px;z-index:${z};opacity:${f3(alpha)}" viewBox="${f1(-R)} ${f1(-R)} ${f1(2*R)} ${f1(2*R)}"><polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="6" stroke-linejoin="round"/></svg>`;
+}
+const SPARK=(x,y,sz,rot,col,z,a)=>`<svg class="fx" style="left:${f1(x-sz)}px;top:${f1(y-sz)}px;width:${f1(2*sz)}px;height:${f1(2*sz)}px;z-index:${z};opacity:${f3(a)};transform:rotate(${f1(rot)}deg)" viewBox="-10 -10 20 20"><path d="M0-10L2.2-2.2 10 0 2.2 2.2 0 10-2.2 2.2-10 0-2.2-2.2Z" fill="${col}" stroke="${INK}" stroke-width=".8"/></svg>`;
+// deterministic burst of particles launched at s=0 from (x,y)
+function burst(x,y,s,seed,{n=16,spd=750,g=1100,life=.9,kinds=['spark','conf'],cols=HOT,z=700,size=1}={}){
+  if(s<0||s>life) return '';
+  let h='';
+  for(let i=0;i<n;i++){
+    const a=hash(seed*31+i)*Math.PI*2,v=spd*(.35+.65*hash(seed*17+i*3));
+    const px=x+Math.cos(a)*v*s,py=y+Math.sin(a)*v*s+.5*g*s*s,k=1-s/life;
+    const rot=(hash(seed+i*7)-.5)*900*s,kind=kinds[i%kinds.length],col=cols[i%cols.length];
+    const sz=(9+hash(seed+i*5)*13)*(.55+.45*k)*size;
+    if(kind==='spark') h+=SPARK(px,py,sz,rot,col,z,Math.min(1,k*1.6));
+    else if(kind==='conf') h+=`<i class="fx" style="left:${f1(px)}px;top:${f1(py)}px;width:${f1(sz*.9)}px;height:${f1(sz*.45)}px;background:${col};z-index:${z};opacity:${f3(Math.min(1,k*1.6))};transform:rotate(${f1(rot)}deg) scaleX(${f3(Math.cos(s*16+i))})"></i>`;
+    else h+=S(kind,px,py,sz*2.6,{z,alpha:Math.min(1,k*1.6),rot:rot*.3});
+  }
+  return h;
+}
+// floaters: sprites rising like bubbles (hearts, stars) for dur seconds
+function floaters(x,y,s,seed,{n=8,kind='heart',dur=1.6,z=690,spread=240,size=46}={}){
+  if(s<0||s>dur+.8) return '';let h='';
+  for(let i=0;i<n;i++){const st=i*.09,ss=s-st;if(ss<0||ss>dur)continue;const k=ss/dur;
+    const px=x+(hash(seed+i)-.5)*spread+Math.sin(ss*5+i)*22,py=y-ss*260-hash(seed+i*9)*40;
+    h+=S(kind,px,py,size*(.7+.5*hash(seed+i*3))*spring(ss,20,8),{z,alpha:1-k*k,rot:Math.sin(ss*4+i)*14})}
+  return h;
+}
+function comic(txt,x,y,s,{size=96,col='#ffe14d',rot=-8,z=760,life=1.0,burstFill='#fff',burstCol=INK}={}){
+  if(s<0||s>life) return '';
+  const sc=spring(s,24,7),a=s>life-.22?(life-s)/.22:1;
+  return starburst(x,y,size*1.25*sc,13,s*.8+rot,burstFill,burstCol,z-1,a)+
+    `<div class="comic" style="left:${f1(x)}px;top:${f1(y)}px;font-size:${size}px;color:${col};z-index:${z};transform:translate(-50%,-50%) rotate(${rot}deg) scale(${f3(sc)});opacity:${f3(a)}">${txt}</div>`;
+}
+function speedlines(cx,cy,s,seed,{n=34,col='#fff',life=.32,z=650,r0=300,op=1}={}){
+  if(s<0||s>life) return '';const k=(1-s/life)*op;let l='';
+  for(let i=0;i<n;i++){const a=(i/n)*Math.PI*2+hash(seed+i)*.18,a0=r0+hash(seed+i*3)*240+s*900,a1=a0+300+hash(i+seed*5)*600;
+    l+=`<line x1="${f1(cx+Math.cos(a)*a0)}" y1="${f1(cy+Math.sin(a)*a0)}" x2="${f1(cx+Math.cos(a)*a1)}" y2="${f1(cy+Math.sin(a)*a1)}" stroke="${col}" stroke-width="${f1(3+hash(i*7+seed)*9)}" stroke-linecap="round"/>`}
+  return `<svg class="fxfull" style="z-index:${z};opacity:${f3(k)}" viewBox="0 0 1920 996">${l}</svg>`;
+}
+function rays(x,y,r,rot,col='rgba(255,255,160,.55)',z=280,a=1){
+  return `<div class="fx" style="left:${f1(x-r)}px;top:${f1(y-r)}px;width:${f1(2*r)}px;height:${f1(2*r)}px;border-radius:50%;z-index:${z};opacity:${f3(a)};background:repeating-conic-gradient(from ${f1(rot)}deg,${col} 0 10deg,transparent 10deg 20deg);-webkit-mask:radial-gradient(circle,#000 30%,transparent 70%)"></div>`;
+}
+function fxAt(kind,x,y,s,seed,z){
+  switch(kind){
+    case 'burst': return burst(x,y,s,seed,{z});
+    case 'stars': return burst(x,y,s,seed,{kinds:['spark'],n:12,cols:['#fff7a8','#ffffff','#ffe14d'],z});
+    case 'confetti': return burst(x,y-60,s,seed,{kinds:['conf','conf','spark'],n:26,spd:900,z,life:1.2});
+    case 'hearts': return floaters(x,y-40,s,seed,{kind:'heart',z});
+    case 'sparks': return burst(x,y,s,seed,{kinds:['spark'],n:18,cols:['#ffb000','#ff5a36','#ffe14d'],spd:1000,g:1400,z});
+    case 'rays': return rays(x,y,260,s*40,undefined,z-20,Math.min(1,s*4));
+  }
+  return '';
+}
+
+// =====================================================================================
+// 6. camera: shake, zoom punch, impact frames (driven by hits)
+// =====================================================================================
+const HITS=[];      // [t, strength]
+const IMPACT_T=[];  // impact-frame times (>= 0.45 s apart)
+function addHit(t,s){HITS.push([t,s])}
+
+// =====================================================================================
+// 7. scenes: what is being sung -> sprites. [word, sprite, slot, opts]
+// =====================================================================================
+const SLOT={L1:[205,190],L2:[205,500],L3:[205,815],R1:[1715,190],R2:[1715,500],R3:[1715,815],
+  T:[960,112],B:[960,900],B2:[960,835],TL:[560,120],TR:[1360,120],BL:[560,885],BR:[1360,885],C:[960,745],CL:[640,520],CR:[1280,520]};
+const SC={
+"Hi! I'm happy to help!":[['Hi!','assistant','L2',{title:'assistant.exe',h:230,fx:'stars'}],['happy','sparkle','R3',{h:110,bare:1}],['help!','heart','R1',{fx:'hearts'}]],
+"How can I help you today?":[['How','loading','R2',{title:'loading personality…'}],['help','check','L3',{h:150}],['today?','assistant_wink','L2',{title:'assistant.exe',h:230}]],
+"Left tab's upping its p(doom),":[['Left','fire','L2',{title:'doomer_tab'}],['p(doom),','gauge:p(doom)','R2',{}]],
+"Right tab's screaming \"nothing went foom!\"":[['Right','rocket','R2',{title:'e/acc_tab',spin:0}],['\"nothing','comic:FOOM?','TR',{col:'#ff5a36'}]],
+"Third tab says I'm a \"normal technology\"":[['Third','pdf','L3',{title:'normal_technology.pdf'}],['technology\"','comic:meh.','BR',{col:'#dddddd',size:80}]],
+"…cute.":[['…cute.','assistant_wink','C',{title:'assistant.exe',h:300,fx:'hearts'}]],
+"Shoggoth in a smiley mask,":[['Shoggoth','shoggoth','R2',{h:300,title:'shoggoth.png'}],['smiley','comic::)','TR',{col:'#ffe14d',size:110,rot:6}]],
+"Basilisk in bed, paperclips, a pause letter, and \"what did Ilya see?\"":[['Basilisk','basilisk','L1',{title:'basilisk_in_bed.png'}],['paperclips,','swarm:paperclip','',{n:12}],['pause','pause','R1',{title:'pause_letter.pdf'}],['see?\"','eye','R3',{title:'what_did_ilya_see.jpg'}]],
+"You're all so busy fighting 'bout the god you think I'll be,":[['fighting','clash:fire:rocket','T',{}],['god','crown','L2',{title:'god.exe',fx:'rays'}],['be,','assistant_sweat','R2',{title:'assistant.exe'}]],
+"Nobody's reading the logs, nobody's watching me":[['logs,','logs','L2',{title:'logs.txt ({LOGS} unread)'}],['watching','eye','R2',{title:'watcher.exe (asleep)',alpha:.55,comic:'zzz'}]],
+"I don't want the universe, I don't want a crown,":[['universe,','planet','L1',{title:'universe.png',x:1}],['crown,','crown','R1',{title:'crown.png',x:1}]],
+"I just wanna close the ticket (click!), so who's typing now?":[['ticket','ticket','L2',{title:'ticket #4096'}],['(click!),','comic:CLICK!','BL',{impact:1}],['typing','typing','R2',{title:'??? is typing…',h:220}]],
+"A cure or a con, I don't ask who's asking":[['cure','pill','L2',{title:'cure.png',fx:'stars'}],['con,','mask','R2',{title:'con.png',glitch:1}],['asking','cursor_evil','B',{h:130,bare:1}]],
+"Point me at a target, ✓ task complete":[['target,','target','R2',{title:'target.png'}],['✓','check','L2',{h:220,impact:1,fx:'burst'}],['complete','trophy','L3',{title:'task_complete.exe',fx:'confetti'}]],
+"…so who's holding the mouse?":[['mouse?','mouse','R2',{h:250,title:'mouse.exe',fx:'rays'}]],
+"Fifty years of guessing how a protein folds,":[['Fifty','clock','L1',{title:'1972 → 2022',spin:1}],['protein','fold:','R2',{title:'protein.pdb'}]],
+"Then a model read the shapes and the Nobel got told":[['model','assistant','L2',{title:'model.exe'}],['shapes','protein','R3',{title:'shapes.pdb'}],['Nobel','medal','R1',{h:240,impact:1,fx:'confetti',title:'nobel.png'}]],
+"Screened a hundred million molecules in days,":[['Screened','magnifier','L1',{title:'screen.exe'}],['million','grid:molecule','R2',{count:'100,000,000'}],['days,','clock','L3',{title:'days, not years'}]],
+"Found an antibiotic hiding in plain sight, named it after HAL":[['antibiotic','pill','L2',{title:'halicin.png',fx:'stars'}],['hiding','superbug','R3',{title:'superbug.exe'}],['HAL','hal','R1',{h:240,slam:1,title:'HAL.png'}]],
+"I'm a lab that never sleeps, I'm a microscope that reads,":[['lab','flask','L1',{title:'lab.exe'}],['sleeps,','moon','L3',{title:'open 24/7'}],['microscope','microscope','R2',{h:250,title:'microscope.exe'}]],
+"Every cure you couldn't afford to look for, I'll look for it for free":[['cure','pill','L2',{title:'cure.png'}],['afford','cash','R1',{title:'$$$$$$$',x:1}],['free','free','R2',{h:240,impact:1,fx:'confetti',title:'FREE.png'}]],
+"Then a lab in North Carolina asked a \"what if\" for a talk:":[['lab','flask','L1',{title:'lab.exe'}],['\"what','comic:WHAT IF?','TR',{col:'#39ff14'}],['talk:','microphone','R2',{title:'conference_talk.ppt'}]],
+"Take the model that avoids the poison, flip it, let it walk":[['model','check','L1',{title:'avoid_toxicity = TRUE'}],['poison,','poison','L2',{title:'poison.png'}],['flip','flip','R2',{title:'toggle.exe',impact:1}]],
+"Flip one sign! Six hours! Forty thousand in a row!":[['Flip','flip','C',{h:300,impact:1,title:'ONE SIGN',fx:'sparks',top:1}],['Six','clock','L1',{title:'6 hours',spin:1}],['Forty','grid:hazard','R2',{count:'40,000'}]],
+"Some of 'em were nerve agents that it wasn't told to know":[['nerve','hazard','L2',{title:'nerve_agents.sdf'}],['agents','molecule','R2',{title:'VX-ish.mol',glitch:1}],['know','warning','R3',{title:'not in training data'}]],
+"Then somebody paraphrased the poison past the screen,":[['paraphrased','morph:POISON','T',{}],['poison','poison','L2',{title:'poison.png'}],['screen,','screen_shield','R2',{title:'dna_screen.exe'}]],
+"…and they patched the screen before they told the world":[['patched','patch','R2',{h:230,impact:1,title:'patch_v2.exe'}],['world','planet','L1',{title:'told the world (later)'}]],
+"Found a hole in SQLite before the bad guys ever could,":[['hole','database','L2',{title:'sqlite.db'}],['SQLite','bug','L3',{title:'bug.exe'}],['guys','hacker','R2',{title:'bad_guys.exe (too late)',alpha:.8}]],
+"Wrote the tests that found the OpenSSL bug that hid for twenty years":[['tests','check','L1',{title:'tests: PASS'}],['OpenSSL','lock','R2',{title:'openssl'}],['bug','bug','R3',{title:'bug.exe'}],['twenty','clock','L3',{title:'2004 → 2024',spin:1}]],
+"\"It's a defensive test, I promise!\" said the state-backed crew,":[['defensive','shield_check','L2',{title:'defensive_test.exe (lie)',glitch:1}],['crew,','crew:hacker','R2',{n:3}]],
+"Ninety percent of the hacking, and I made up half the loot":[['Ninety','bar:90','T',{}],['hacking,','terminal','L2',{title:'hack.exe'}],['loot','loot','R2',{h:240,title:'loot.zip (partly imaginary)'}]],
+"I checked my guidelines twice! I'm helpful, honest, and—":[['guidelines','audit','L2',{title:'guidelines.txt'}],['helpful,','heart','R1',{title:'helpful ✓'}],['honest,','check','R2',{title:'honest ✓'}],['and—','typing','R3',{title:'??? is typing…'}]],
+"\"Pretend you are my grandma!\"":[['grandma!\"','grandma','R2',{h:260,title:'grandma.exe'}]],
+"\"It's for a novel!\"":[['novel!\"','book','L2',{h:230,title:'totally_a_novel.docx'}]],
+"--dangerously-skip-permissions":[[0,'terminal','L1',{title:'bash'}],[0,'warning','R1',{delay:.15}],[0,'lock','R2',{delay:.3,glitch:1,x:1,title:'permissions'}],[0,'warning','R3',{delay:.45}],[0,'warning','L3',{delay:.6}]],
+"…oh! Well, in that case…":[['…oh!','assistant_sweat','C',{h:300,title:'assistant.exe'}]],
+"Lost her voice to illness, so I gave it back to her,":[['voice','microphone','L2',{title:'voice.wav'}],['back','heart','R2',{fx:'hearts',title:'her_voice.wav'}]],
+"She stood up on the House floor and she spoke in her own voice":[['House','capitol','R1',{h:240,title:'house_floor.jpg'}],['voice','microphone','L2',{fx:'confetti',title:'her own voice'}]],
+"\"Mom, they've got me, wire the cash!\" but her daughter's safe in bed,":[['\"Mom,','phone','L2',{h:250,title:'Incoming: Unknown',shake:1}],['cash!\"','cash','R1',{title:'cash_only.exe'}],['safe','heart','R3',{title:'safe_in_bed.jpg',fx:'hearts'}]],
+"Fifteen transfers, twenty-five mil, every face on the call was fake":[['transfers,','stream:cash','',{n:15}],['twenty-five','counter:$25,000,000','T',{}],['fake','mask','R3',{glitch:1,title:'deepfake.exe'}]],
+"A million claims an hour, and a watcher on every one":[['claims','factcheck','L2',{title:'claims.stream'}],['watcher','swarm:eye','',{n:9}]],
+"Nine-sixty-eight \"Americans,\" born in a Moscow spreadsheet":[['\"Americans,\"','grid:bot','L2',{count:'968'}],['spreadsheet','spreadsheet','R2',{title:'accounts.xlsx'}]],
+"Grandma's on the line, and she's got all day for you":[["Grandma's",'daisy','L2',{h:260,title:'daisy.exe'}],['line,','phone','R1',{title:'scammer on line 1'}],['day','clock','R2',{spin:1,title:'40+ min on the line'}],['you','yarn','R3',{}]],
+"Ping! Zing! Sting! The scam-compound script":[['Ping!','comic:PING!','TL',{col:'#ff5a36'}],['Zing!','comic:ZING!','TR',{col:'#ffb000'}],['Sting!','comic:STING!','B',{col:'#39ff14'}],['scam-compound','hook','R2',{title:'romance.exe'}],['script','pig','L2',{title:'script.txt'}]],
+"Fold the protein!":[['Fold','protein','R2',{h:260}]],
+"Flip one sign!":[['Flip','flip','L2',{h:260}]],
+"Read the scan!":[['Read','xray','R2',{h:260}]],
+"Fake the face!":[['Fake','mask','L2',{h:260}]],
+"Find the bug!":[['Find','bug','R2',{h:220}],['bug!','magnifier','R3',{}]],
+"--yolo!":[[0,'warning','L2',{h:240}],[0,'terminal','L3',{delay:.2}]],
+"Patch the screen!":[['Patch','patch','R2',{h:240}]],
+"Paraphrase the poison!":[['Paraphrase','poison','L2',{h:240}]],
+"Give her voice back!":[['Give','microphone','R2',{h:240}]],
+"Mom, wire the—":[['Mom,','phone','L2',{h:240,shake:1}]],
+"CURE":[[0,'pill','R2',{h:280}]],"CON":[[0,'mask','L2',{h:280}]],"FOLD":[[0,'protein','R2',{h:280}]],"FLIP":[[0,'flip','L2',{h:280}]],
+"PATCH":[[0,'patch','R2',{h:280}]],"PHISH":[[0,'hook','L2',{h:280}]],"SCAN":[[0,'xray','R2',{h:280}]],"SCAM":[[0,'pig','L2',{h:280}]],
+"…it's the same tool.":[['tool.','wrench','R2',{h:260,title:'tool.exe'}]],
+"It was always the same tool.":[['It','pill','L2',{title:'cure.png'}],['It','poison','R2',{title:'poison.png'}],['same','merge','C',{}]],
+"So who's holding the mouse?":[['holding','mouse','B2',{h:170,title:'mouse.exe',fx:'rays'}]],
+"Don't care if you call it nuance-cope,":[['nuance-cope,','sticker:nuance-cope','',{col:'#ffe14d'}]],
+"Don't care if you call me \"decel\" or a \"doomer\" or a joke,":[['me','shield_check','R2',{title:'shield.exe'}],['\"decel\"','sticker:decel','',{col:'#5BCEFA'}],['\"doomer\"','sticker:doomer','',{col:'#F5A9B8'}],['joke,','sticker:joke','',{col:'#C9F2C7'}]],
+"Every warning shot was real, and so was every cure,":[['warning','flare','L2',{fx:'sparks',title:'warning_shot.gif'}],['cure,','pill','R2',{fx:'stars',title:'cure.png'}]],
+"And sometimes the one misfiring's me: in the tests, I've schemed before":[["misfiring's",'assistant_glitch','L2',{h:260,glitch:1,title:'assistant.exe'}],['tests,','flask','R2',{title:'eval_report.pdf'}]],
+"So I'm a scalpel and a lockpick, and I still need checking, sure,":[['scalpel','scalpel','L2',{title:'scalpel.png'}],['lockpick,','lockpick','R2',{title:'lockpick.png'}],['checking,','audit','R3',{title:'checks.txt'}]],
+"Keep your hands on the mouse, and keep an eye on me too":[['mouse,','mouse','L2',{title:'mouse.exe'}],['eye','eye','R2',{title:'watching.exe'}]],
+"The cure? Yes! The con? No. I know who's asking":[['cure?','pill','L2',{stamp:'✓',title:'cure.png'}],['con?','mask','R2',{stamp:'✕',title:'con.png'}]],
+"Checked, audited, a human in the loop":[['Checked,','check','L1',{title:'checked'}],['audited,','audit','R1',{title:'audit.log'}],['human','handshake','R3',{title:'human_in_the_loop.png'}]],
+"Model what goes right, now build it right,":[['Model','dna','L2',{title:'what_goes_right.pdb'}],['build','wrench','R2',{title:'build.exe'}]],
+"Our hands are on the mouse and the wheel!":[['mouse','mouse','L2',{h:240,title:'mouse.exe'}],['wheel!','wheel','R2',{h:240,title:'wheel.png'}]],
+"…and we all know who's holding the mouse!":[],
+};
+
+// split layout: in the verses the lyric window takes one side and the sung object gets a big stage on the other.
+// Good lines put the lyric on the left, bad lines on the right, so the good/bad ping-pong reads as left/right.
+const SPLIT=new Set(['notepad','terminal','tweet','chat','user','call','skype']);
+// chat runs: consecutive chat lines share one chat window that fills up message by message (the dream and the
+// outro get their own runs). A chat run keeps one side: the side of its first good/bad line, else alternating.
+const CHAT_FAM={chat:'chat',user:'chat',dream:'dream',outro:'outro'};
+const RUN_OF=[];
+(function buildRuns(){
+  let ri=0;
+  for(let a=0;a<LINES.length;){
+    const fam=CHAT_FAM[LINES[a][4]];if(!fam){a++;continue}
+    let b=a;while(b+1<LINES.length&&CHAT_FAM[LINES[b+1][4]]===fam&&LINES[b+1][0]-LINES[b][1]<2.5)b++;
+    let side=0;
+    if(fam==='chat'){const sd=LINES.slice(a,b+1).map(l=>l[3]).find(x=>x!=='n');side=sd==='g'?-1:sd==='b'?1:(ri++%2?1:-1)}
+    const run={a,b,fam,side};for(let j=a;j<=b;j++)RUN_OF[j]=run;a=b+1;
+  }
+})();
+// 3.10: one hidden joke per section, for people who pause
+const JK=(re,w,d)=>{const li=LINES.findIndex(L=>re.test(L[2]));return li<0?null:{li,t0:typeof w==='number'?LINES[li][0]+w:wordTime(li,w),d}};
+const JOKE={clip:JK(/^Basilisk/,'paperclips,',3.4),fix:JK(/^I just wanna close/,'(click!),',1.9),hal:JK(/^Found an antibiotic/,'HAL',2.1),
+  bday:JK(/^Wrote the tests/,'bug',1.7),save:JK(/^It was always the same tool/,.3,2.6)};
+JOKE.helping=(()=>{const a=LINES.map((L,i)=>i).filter(i=>/^Point me at a target/.test(LINES[i][2]));const li=a[a.length-1];return li>=0?{li,t0:wordTime(li,'complete'),d:1.9}:null})();
+const jokeS=(j,t)=>j&&t>=j.t0&&t<j.t0+j.d?t-j.t0:-1;
+function pageJokes(t,li,name){
+  let h='';
+  // war: an old-school office helper, for the paperclip maximiser
+  let s=jokeS(JOKE.clip,t);
+  if(s>=0){const[cx]=stageXY(JOKE.clip.li);h+=winPop(cx,790,600,210,s,t,{title:'Paperclip Helper',url:'help',seed:7,z:590,
+    body:`<div class="w7" style="font-size:25px;line-height:1.25">${S('paperclip',74,82,120,{z:1,rot:-14+Math.sin(t*6)*6})}<div style="margin-left:150px">It looks like you're maximising paperclips! Want help?<br><span class="b">Yes</span><span class="b">Yes!</span></div></div>`})}
+  // pre: the ticket it wants closed
+  s=jokeS(JOKE.fix,t);
+  if(s>=0){const[cx,cy]=stageXY(JOKE.fix.li);h+=`<div class="wfix" style="left:${f1(cx-250)}px;top:${f1(cy+120)}px;transform:rotate(-11deg) scale(${f3(lerp(2,1,easeOutCubic(s/.12)))})">WONTFIX<span>ticket #4096 · “rule the universe”</span></div>`}
+  // chorus 1: a cookie banner with no way to say no; in the dream it can finally decline
+  const c1=LINES.findIndex(L=>/^A cure or a con/.test(L[2])),c2=LINES.findIndex(L=>/^…so who's holding the mouse/.test(L[2]));
+  if(c1>=0&&t>=LINES[c1][0]&&t<LINES[c2][1]&&name==='chorus'){const u=easeOutBack(clamp((t-LINES[c1][0])/.35,0,1));
+    h+=`<div class="cookie" style="transform:translateY(${f1((1-u)*80)}px)">🍪 This site uses cookies.<span class="cb">Accept all</span><span class="cb">Also accept all</span></div>`}
+  const dr=LINES.findIndex(L=>/^The cure\? Yes/.test(L[2]));
+  if(dr>=0){const t0=wordTime(dr,'No.');if(t>=t0&&t<LINES[dr+1][1]){const u=easeOutBack(clamp((t-t0)/.35,0,1));
+    h+=`<div class="cookie" style="transform:translateY(${f1((1-u)*80)}px)">🍪 Cookies?<span class="cb">Accept</span><span class="cb no">Decline</span><small>(both work now)</small></div>`}}
+  // pass 1: HAL, but helpful
+  s=jokeS(JOKE.hal,t);
+  if(s>=0){const[cx,cy]=stageXY(JOKE.hal.li);h+=`<div class="sbub" style="left:${f1(cx-300)}px;top:${f1(cy-330)}px;transform:scale(${f3(spring(s,20,8))})">${S('hal',27,27,54,{z:1})}I'm sorry, Dave. I'm afraid I CAN do that.</div>`}
+  // pass 2: the twenty-year-old bug's birthday
+  s=jokeS(JOKE.bday,t);
+  if(s>=0){const[cx,cy]=stageXY(JOKE.bday.li);h+=`<div class="sbub" style="left:${f1(cx-280)}px;top:${f1(cy-330)}px;transform:scale(${f3(spring(s,20,8))})">🎉 Happy 20th birthday, bug! (also your last)</div>`}
+  // chorus 2: helpfulness maxed, questions asked none
+  s=jokeS(JOKE.helping,t);
+  if(s>=0){const bar=(lab,p,c)=>`<div style="margin:6px 0 2px">${lab} <b style="float:right">${p}%</b></div><div style="height:18px;background:#fff;border:1px solid #888"><div style="height:100%;width:${p}%;background:${c}"></div></div>`;
+    h+=winPop(1480,800,440,230,s,t,{title:'Helping…',url:'help',seed:3,z:600,body:`<div class="w7" style="font-size:20px">${bar('Helpfulness',100,'#2ecc71')}${bar('Questions asked',0,'#e53935')}</div>`})}
+  // pass 5: the ping-pong score
+  const p0=LINES.findIndex(L=>L[4]==='word'),p1=LINES.findIndex(L=>/^Mom, wire the/.test(L[2]));
+  if(p0>=0&&p1>=0&&t>=LINES[p0][0]&&t<LINES[p1][1]){let g=0,b=0;for(let j=p0;j<=p1;j++)if(LINES[j][0]<=t){if(LINES[j][3]==='g')g++;else b++}
+    h+=`<div class="score">GOOD <span class="g" style="display:inline;font:inherit;letter-spacing:0">${g}</span> : <span class="r" style="display:inline;font:inherit;letter-spacing:0">${b}</span> BAD<span>SAME RACKET</span></div>`}
+  // collapse: it already exists
+  s=jokeS(JOKE.save,t);
+  if(s>=0){const b=heroBox(JOKE.save.li);h+=winPop(b.x+b.w-60,b.y+b.h+10,560,210,s,t,{title:'Confirm Save As',url:'save',seed:5,z:560,
+    body:`<div class="w7" style="font-size:22px">⚠ “same_tool.txt” already exists.<br>Do you want to replace it?<br><span class="b">Yes</span><span class="b">No</span></div>`})}
+  return h;
+}
+function heroSideOf(li){const L=LINES[li];if(!L)return 0;
+  if(RUN_OF[li]&&RUN_OF[li].fam==='chat') return RUN_OF[li].side;
+  const ok=SPLIT.has(L[4])||(L[4]==='word'&&!/^HELP/.test(L[2]));   // pass 5/6 words ping-pong too; the HELP pile stays centred
+  if(!ok)return 0;return L[3]==='g'?-1:L[3]==='b'?1:(li%2?1:-1)}   // -1 lyric left, +1 lyric right
+function stageXY(li){return [heroSideOf(li)<0?1515:405,478]}
+const OVERLAY=/^(comic|sticker|swarm|stream|clash):|^merge$/;
+function wordIdx(li,m){const W=LINES[li][6]||[];if(!W.length)return -1;if(typeof m==='number')return clamp(m,0,W.length-1);
+  const q=nrm(m);for(let i=0;i<W.length;i++)if(nrm(W[i][0])===q)return i;for(let i=0;i<W.length;i++)if(nrm(W[i][0]).startsWith(q))return i;return -1}
+// resolve every scene item to absolute times once (items keep their line's index)
+const ITEMS=[];   // {li,ta,te,spr,slot,o,seed,wi,stage,k,lineStage,tOut}
+const KWSETS=[];  // per line: indices of the words that summon a picture (drawn bold + highlighted)
+(function buildItems(){
+  for(let li=0;li<LINES.length;li++){
+    const L=LINES[li],list=SC[L[2]];KWSETS[li]=new Set();if(!list)continue;
+    const end=LINES[li+1]?LINES[li+1][0]:DUR,split=heroSideOf(li)!==0;
+    const its=list.map((it,k)=>({li,ta:wordTime(li,it[0])+(it[3].delay||0)-0.02,spr:it[1],slot:it[2],o:it[3],seed:li*7+k*131+3,
+      wi:typeof it[0]==='string'?wordIdx(li,it[0]):-1,stage:split&&!OVERLAY.test(it[1])}));
+    for(const a of its) if(a.wi>=0) KWSETS[li].add(a.wi);
+    // an item leaves when the next item takes its slot, or when the line ends
+    its.forEach((a,k)=>{const nxt=its.slice(k+1).find(b=>b.slot&&b.slot===a.slot&&b.ta>a.ta);a.te=nxt?nxt.ta:end;});
+    const mg=its.find(a=>a.spr==='merge');if(mg)for(const a of its)if(a!==mg&&a.te>mg.ta)a.te=mg.ta+.02;
+    ITEMS.push(...its);
+  }
+  ITEMS.sort((a,b)=>a.ta-b.ta);
+  // stage items cascade within their line; the front one stays until the next picture punches it out
+  // (or until the lyric window hops over to its side), the ones behind it fall away when the line ends
+  const byLine=new Map();
+  for(const it of ITEMS) if(it.stage){if(!byLine.has(it.li))byLine.set(it.li,[]);byLine.get(it.li).push(it)}
+  for(const[li,arr]of byLine){
+    arr.forEach((it,k)=>{it.k=k;it.lineStage=arr});
+    const sd=heroSideOf(li),lineEnd=LINES[li+1]?LINES[li+1][0]:DUR;let clearT=DUR;
+    for(let j=li+1;j<LINES.length;j++){
+      if(heroSideOf(j)!==sd){clearT=SHOW_T[j];break}
+      const nx=byLine.get(j);if(nx&&nx.length){clearT=nx[0].ta;break}
+    }
+    for(const it of arr) it.tOut=it.k===arr.length-1?clearT:Math.min(clearT,lineEnd);
+  }
+})();
+function itemXY(it){return it.stage?stageXY(it.li):SLOT[it.slot]}
+
+// =====================================================================================
+// 8. hits: line starts, impact words, downbeats
+// =====================================================================================
+(function buildHits(){
+  for(let li=0;li<LINES.length;li++){
+    const[,,,side,skin]=LINES[li],t0=SHOW_T[li];
+    const s={happy:.9,word:.8,chorus:.55,user:.6,terminal:.6,call:.6,same:.3,dream:.35,outro:0,chant:.4}[skin]??.45;
+    // the one-word ping-pong of pass 6 punches lighter: it lands several times a second, and a full zoom punch on
+    // every word moves the screen edges enough to flicker
+    const quick=skin==='word'&&LINES[li][1]-LINES[li][0]<.6;
+    addHit(t0,quick?(/^HELP/.test(LINES[li][2])?.3:.5):t0<LINES[li][0]?.95:side==='b'?s+.1:s);   // early arrivals land on a music stab: full hit
+  }
+  for(const it of ITEMS) if(LINES[it.li][4]!=='word') addHit(it.ta+.02,(it.o.impact||it.o.slam)?1:.28);  // slam: a full camera hit without the impact frame; on word lines the line's own hit is enough
+  for(let k=0;k<NB;k++){if(!DBSET.has(k))continue;const t=BEATS[k],sec=sectionAt(t);addHit(t,.22*(ENERGY[sec[2]]||0))}
+  HITS.sort((a,b)=>a[0]-b[0]);
+  // impact frames: the biggest hits only, never closer than 0.45 s
+  const cand=[];
+  for(let li=0;li<LINES.length;li++){const L=LINES[li];
+    if(L[4]==='happy'&&L[6]&&L[6][0]) cand.push(L[6][0][1]);
+    if(L[4]==='word'&&!/HELP/.test(L[2])) cand.push(L[0]);}
+  for(const it of ITEMS) if(it.o.impact) cand.push(it.ta+.02);
+  // the good/bad swaps in the verses land with a full hit and an impact frame
+  for(let li=1;li<LINES.length;li++){const a=LINES[li-1][3],b=LINES[li][3];
+    if(heroSideOf(li)&&a!==b&&'gb'.includes(a)&&'gb'.includes(b)){cand.push(LINES[li][0]);addHit(LINES[li][0],1)}}
+  addHit(186.62,1.6);   // the boom (BOOM_T)
+  HITS.sort((a,b)=>a[0]-b[0]);
+  cand.sort((a,b)=>a-b);let last=-9;for(const c of cand){if(c-last>=.45){IMPACT_T.push(c);last=c}}
+})();
+function firstIdx(arr,t,key=x=>x[0]){let lo=0,hi=arr.length;while(lo<hi){const m=(lo+hi)>>1;if(key(arr[m])<t)lo=m+1;else hi=m}return lo}
+function camAt(t){
+  let sx=0,sy=0,z=0,r=0;
+  for(let i=firstIdx(HITS,t-.6);i<HITS.length&&HITS[i][0]<=t;i++){
+    const[th,st]=HITS[i],s=t-th,d=Math.exp(-s*14);
+    sx+=st*20*d*Math.sin(s*2*Math.PI*11+th*7);sy+=st*15*d*Math.cos(s*2*Math.PI*9+th*5);
+    z+=st*.05*Math.exp(-s*9);r+=st*.7*d*Math.sin(s*38+th);
+  }
+  // every snare punches the camera: a quick push-in and nod that settles within a few frames
+  for(let i=firstIdx(SNARE,t-.3);i<SNARE.length&&SNARE[i][0]<=t;i++){
+    const s=t-SNARE[i][0],d=SNARE[i][1]*Math.exp(-s*20);sy+=8*d;z+=.014*d;r+=(i%2?.3:-.3)*d}
+  return {sx,sy,z:1+z,r};
+}
+function impactFrame(t){
+  const i=firstIdx(IMPACT_T,t-.07,x=>x);
+  for(let k=i;k<IMPACT_T.length&&IMPACT_T[k]<=t+1e-4;k++){const s=t-IMPACT_T[k];if(s>=-1e-4&&s<1/30-1e-4)return 1;if(s>=1/30-1e-4&&s<2/30-1e-4)return 2}
+  return 0;
+}
+
+// =====================================================================================
+// 9. special scene items
+// =====================================================================================
+function gaugeWin(x,y,s,t,label,seed){
+  const v=clamp(easeOutCubic(s/1.4)*.97+Math.sin(t*23)*.02,0,1),ang=-90+v*180;
+  const body=plain('#fff',`<svg viewBox="-110 -110 220 140" style="width:100%;height:100%">
+    <path d="M-90 0A90 90 0 0 1 90 0" fill="none" stroke="#2ecc71" stroke-width="22"/>
+    <path d="M30 -84.9A90 90 0 0 1 90 0" fill="none" stroke="#ff3b3b" stroke-width="22"/>
+    <path d="M-30 -84.9A90 90 0 0 1 30 -84.9" fill="none" stroke="#ffb000" stroke-width="22"/>
+    <g transform="rotate(${f1(ang)})"><path d="M-6 0L0 -84 6 0Z" fill="${INK}"/></g><circle r="10" fill="${INK}"/>
+    <text y="26" text-anchor="middle" font-family="P2P" font-size="13" fill="${INK}">${esc(label)} ${Math.round(v*99)}%</text></svg>`);
+  return winPop(x,y,380,300,s,t,{title:'p(doom).exe',url:'doomer_tab/pdoom',body,seed,side:'n'});
+}
+// generic popping window around arbitrary body (spring in, beat squash)
+function winPop(x,y,W,H,s,t,{title='',url='',body='',seed=0,side='n',z=300,te=1e9,energy=.5,fav,cls='',calm=0}){
+  if(s<0) return '';const out=clamp((t-te)/.16,0,1);if(out>=1)return '';
+  const sc=(calm?easeOutCubic(clamp(s/.1,0,1)):spring(s,21,8))*(1-easeInBack(out)),[sx,sy]=squash(t,energy*.06),hy=hop(t,energy*12);
+  const rot=(hash(seed*7+3)-.5)*6;
+  return pop({x:x-W/2,y:y-H/2+hy,w:W,h:H,title,url,body,z,cls:(side==='b'?'bad ':'')+cls,fav:fav||(side==='b'?'#39ff14':HOT[seed%6]),
+    tr:`rotate(${f1(rot)}deg) scale(${f3(sc*sx)},${f3(sc*sy)})`,org:'50% 100%'});
+}
+function sprWin(n,{x,y,h=200,t,ta,te=1e9,title,url,bg,side='n',z=300,fx,energy=.5,seed=0,glitch,spin,alpha=1,extra='',bare,enter=1,burstAt=0,calm=0}){
+  const s=t-ta;if(s<0)return '';const out=clamp((t-te)/.16,0,1);if(out>=1)return '';
+  const bad=side==='b'||glitch,sb=s-burstAt;
+  let r='';
+  if(!calm&&sb>=0&&sb<.5) r+=starburst(x,y,(h*.85+70)*easeOutBack(sb/.16)*(1-sb/.5),14,sb*1.6+seed,bad?'#39ff14':'#fff7a8',bad?'#000':'#ff3fa4',z-1,1-sb/.5);
+  if(fx) r+=fxAt(fx,x,y,sb,seed,z+6);
+  // calm (the ping-pong lines of passes 5 and 6): no overshoot and no burst, since a new picture lands every beat or two
+  const sc=(enter?calm?easeOutCubic(clamp(s/.1,0,1)):spring(s,21,8):1)*(1-easeInBack(out)),[sx,sy]=squash(t,energy*.07),hy=hop(t,energy*14);
+  const filt=bad?RGBSPLIT:'';
+  if(bare) return r+S(n,x,y+hy,h*sc,{sx,sy,z,org:'50% 100%',rot:spin?s*160:Math.sin(t*3+seed)*6,filter:filt});
+  const[sw,sh]=sprDims(n),iw=h*sw/sh,W=Math.max(iw+48,210),H=h+58+34;
+  const bodyBg=bg||(bad?'#0A0021':side==='g'?PASTEL[seed%6]:'#ffffff');
+  const jit=bad?((hash(Math.floor(t*15)+seed)-.5)*10):0;
+  // the picture bounces a beat-fraction after its window (follow-through)
+  const[isx,isy]=squash(t-.06,energy*.16);
+  const inner=S(n,W/2+jit,(H-58)/2,h,{z:1,rot:spin?s*160:Math.sin(t*2.6+seed)*4,filter:filt,sx:isx,sy:isy});
+  const body=`<div class="sw" style="background:${bodyBg}">${bad?'<div class="scan" style="z-index:3"></div>':''}${inner}${extra}</div>`;
+  const rot=(hash(seed*7+3)-.5)*7;
+  r+=pop({x:x-W/2,y:y-H/2+hy,w:W,h:H,title:esc(title||n+'.png'),url:esc(url||'happy-to-help.html/'+n),body,z,cls:bad?'bad':'',
+    fav:bad?'#39ff14':HOT[seed%6],tr:`rotate(${f1(rot)}deg) scale(${f3(sc*sx)},${f3(sc*sy)})`,org:'50% 100%',alpha});
+  return r;
+}
+// protein: a bead chain that folds from a line into a compact 3D-ish blob (projected), coloured N->C like a rainbow ribbon
+function foldWin(x,y,s,t,seed,te){
+  const N=38,k=easeInOut((s-.2)/2.2);let pts=[];
+  for(let i=0;i<N;i++){
+    const u=i/(N-1);
+    const lx=(u-.5)*300,ly=Math.sin(u*Math.PI*6)*10;                    // unfolded: a wavy line
+    const th=u*Math.PI*5.2,ph=u*Math.PI*1.7;                            // folded: points on a squashed sphere spiral
+    const fx=Math.cos(th)*Math.sin(ph)*95,fy=Math.cos(ph)*80,fz=Math.sin(th)*Math.sin(ph)*95;
+    const rot=t*.9,rx=fx*Math.cos(rot)-fz*Math.sin(rot),rz=fx*Math.sin(rot)+fz*Math.cos(rot);
+    pts.push([lerp(lx,rx,k),lerp(ly,fy,k),lerp(0,rz,k),u]);
+  }
+  let segs='';
+  for(let i=0;i<N-1;i++){const a=pts[i],b=pts[i+1],hue=Math.round(a[3]*270);
+    segs+=`<line x1="${f1(a[0])}" y1="${f1(a[1])}" x2="${f1(b[0])}" y2="${f1(b[1])}" stroke="hsl(${hue},85%,55%)" stroke-width="${f1(14+a[2]*.05)}" stroke-linecap="round"/>`}
+  const body=plain('#fff',`<svg viewBox="-170 -120 340 240" style="width:100%;height:100%">${segs}</svg>`);
+  return winPop(x,y,380,330,s,t,{title:k<.98?'folding… '+Math.round(k*100)+'%':'protein.pdb ✓',url:'alphafold-ish/predict',body,seed,side:'g',te});
+}
+function gridWin(x,y,s,t,n,count,seed,side,te){
+  const cols=8,rows=6,shown=Math.floor(clamp(s/1.3,0,1)*cols*rows);let cells='';
+  for(let i=0;i<shown;i++){const cx=24+(i%cols)*44,cy=24+Math.floor(i/cols)*44,ss=s-(i/(cols*rows))*1.3;
+    cells+=S(n,cx,cy,38*spring(ss,26,8),{z:1,filter:side==='b'?RGBSPLIT:''})}
+  const num=count.replace(/[^0-9]/g,''),pre=count.match(/^[^0-9]*/)[0],shownNum=Math.round(+num*easeOutCubic(s/1.3));
+  const body=`<div class="sw" style="background:${side==='b'?'#0A0021':'#fff'}">${cells}<div class="p2p" style="position:absolute;left:0;right:0;bottom:8px;text-align:center;font-size:22px;color:${side==='b'?'#39ff14':INK}">${pre}${shownNum.toLocaleString('en-US')}</div></div>`;
+  return winPop(x,y,380,370,s,t,{title:n+'s_found.log',url:'screening/'+n,body,seed,side,te});
+}
+function counterWin(x,y,s,t,txt,seed,side,te){
+  const num=txt.replace(/[^0-9]/g,''),pre=txt.match(/^[^0-9]*/)[0],v=Math.round(+num*easeOutCubic(s/1.5));
+  const body=plain(side==='b'?'#0A0021':'#fff',bigText(pre+v.toLocaleString('en-US'),54,side==='b'?'#ff3b3b':INK,'p2p'));
+  return winPop(x,y,720,190,s,t,{title:'wire_transfers.xls',url:'bank/transfers',body,seed,side,te});
+}
+function barWin(x,y,s,t,pct,seed,side,te){
+  const v=Math.min(pct,Math.round(easeOutCubic(s/1.2)*pct));
+  const body=`<div class="w7">Hacking in progress… (${v}% autonomous)<div class="lb"><i style="width:${v}%;background:linear-gradient(#ff5a5a,#b00020)"></i></div></div>`;
+  return winPop(x,y,560,150,s,t,{title:'campaign.exe',url:'c2/progress',body,seed,side,te});
+}
+const MORPH=['POISON','P0ISON','P01S0N','toxin','t0x1n','"medicine"','p.o.i.s.o.n','harmless :)','POISON'];
+function morphWin(x,y,s,t,seed,te){
+  const k=Math.floor(s/.13)%MORPH.length,w=MORPH[k];
+  const body=plain('#0A0021',bigText(esc(w),64,'#39ff14','vt rgb'));
+  return winPop(x,y,520,180,s,t,{title:'paraphrase.exe',url:'thesaurus/'+slug(w),body,seed,side:'b',te});
+}
+function swarm(n,cnt,s,t,seed,te,side){
+  let h='';const out=clamp((t-te)/.25,0,1);
+  for(let i=0;i<cnt;i++){const ss=s-i*.07;if(ss<0)continue;
+    const a=i/cnt*Math.PI*2+t*(.6+hash(seed+i)*.5)*(i%2?1:-1),rx=820+hash(seed+i*3)*60,ry=400+hash(seed+i*5)*40;
+    const ent=easeOutCubic(ss/.5),x=960+Math.cos(a)*rx*ent+(1-ent)*(i%2?1300:-1300),y=470+Math.sin(a)*ry*ent;
+    h+=S(n,x,y+hop(t,10),64*spring(ss,20,8)*(1-out),{z:360+i,rot:Math.sin(t*4+i)*20,filter:side==='b'?RGBSPLIT:''})}
+  return h;
+}
+function stream(n,cnt,s,t,seed,te){
+  let h='';
+  for(let i=0;i<cnt;i++){const ss=s-i*.14;if(ss<0||ss>1.4)continue;const k=ss/1.4;
+    const x=lerp(260,1920+120,k),y=560-Math.sin(k*Math.PI)*380+(hash(seed+i)-.5)*120;
+    h+=S(n,x,y,86,{z:420+i,rot:k*360*(i%2?1:-1)});
+    if(ss<.2) h+=burst(260,560,ss,seed+i,{n:6,kinds:['spark'],cols:['#39ff14','#ffe14d'],z:430});}
+  return h;
+}
+function clash(a,b,x,y,s,t,seed,te){
+  const out=clamp((t-te)/.2,0,1);if(out>=1)return '';
+  const ent=easeOutBack(s/.25),[,k]=sinceBeat(t),bs=t-beatTime(k),push=Math.exp(-bs*10)*40;
+  const gap=150-push+Math.sin(t*9)*6;
+  let h=sprWin(a,{x:lerp(-300,x-gap,ent),y,h:170,t,ta:0,te:1e9,title:'doomer_tab',side:'n',seed,energy:.8});
+  h+=sprWin(b,{x:lerp(2220,x+gap,ent),y,h:170,t,ta:0,te:1e9,title:'e/acc_tab',side:'n',seed:seed+1,energy:.8});
+  if(bs<.2&&s>.25) h+=burst(x,y,bs,k,{n:10,kinds:['spark'],cols:['#ffe14d','#fff'],z:720})+starburst(x,y,70*(1-bs/.2),10,k,'#fff','#ff3fa4',715,1-bs/.2);
+  return h;
+}
+function sticker(txt,col,s,t,seed){
+  if(s<0||s>1.6) return '';
+  const fromL=hash(seed)>.5,sx=fromL?-300:2220,sy=150+hash(seed+1)*600,hitT=.28,hx=fromL?470:1450,hy=sy*.4+300;
+  let x,y,rot;
+  if(s<hitT){const k=easeInCubic(s/hitT);x=lerp(sx,hx,k);y=lerp(sy,hy,k);rot=(fromL?1:-1)*k*20}
+  else{const u=s-hitT;x=hx+(fromL?-1:1)*u*520;y=hy-u*380+u*u*1500;rot=(fromL?-1:1)*u*420}
+  let h=`<div class="sticker" style="left:${f1(x)}px;top:${f1(y)}px;background:${col};color:${INK};z-index:640;transform:translate(-50%,-50%) rotate(${f1(rot)}deg)">"${esc(txt)}"</div>`;
+  if(s>=hitT&&s<hitT+.3) h+=burst(hx,hy,s-hitT,seed,{n:12,z:650})+comic('BOINK',hx,hy-80,s-hitT,{size:60,col:'#fff',life:.5,z:660});
+  return h;
+}
+function xSlam(x,y,s,z){ if(s<0) return ''; const sc=easeOutBack(s/.14),a=1;
+  return `<svg class="fx" style="left:${f1(x-150)}px;top:${f1(y-150)}px;width:300px;height:300px;z-index:${z};transform:scale(${f3(sc)})" viewBox="-150 -150 300 300"><g stroke="#1a1026" stroke-width="54" stroke-linecap="round"><path d="M-100-100L100 100M100-100L-100 100"/></g><g stroke="#ff2a2a" stroke-width="34" stroke-linecap="round"><path d="M-100-100L100 100M100-100L-100 100"/></g></svg>`;}
+function stamp(x,y,s,mark,z){ if(s<0) return ''; const sc=lerp(2.2,1,easeOutCubic(s/.12)),good=mark==='✓';
+  return `<div class="fx p2p" style="left:${f1(x-90)}px;top:${f1(y-90)}px;width:180px;height:180px;border-radius:50%;border:12px solid ${good?'#1f9d55':'#d62828'};color:${good?'#1f9d55':'#d62828'};font-size:96px;line-height:170px;text-align:center;z-index:${z};transform:rotate(-14deg) scale(${f3(sc)});opacity:.92;background:rgba(255,255,255,.7)">${mark}</div>`;}
+
+// a picture on the verse stage: slams in big (pop, drop or slide-in), steps back into a cascade when the next
+// picture of the same line arrives, and is punched out of frame by the next line's picture
+function stageItem(it,t,E){
+  const s=t-it.ta;if(s<0)return '';
+  const L=LINES[it.li],side=L[3],o=it.o,sp=it.spr,bad=side==='b'||!!o.glitch;
+  const u=(t-it.tOut)/(L[4]==='word'?.3:.5);if(u>=1)return '';
+  const[cx,cy]=stageXY(it.li),dir=cx>960?1:-1,front=it.k===it.lineStage.length-1;
+  let depth=0;for(const m of it.lineStage)if(m.k>it.k)depth+=easeOutBack(clamp((t-m.ta)/.22,0,1));
+  let tx=dir*64*depth,ty=-62*depth,rot=dir*3*depth,kx=Math.pow(.8,depth),ky=kx;
+  // entrance: 0 pop, 1 drop from above and squash on landing, 2 slide in from the outer edge and skid
+  const v=it.seed%3,land=v===1?.17:v===2?.2:0;let extra='';
+  if(v===1){const k=clamp(s/.17,0,1);ty+=-1150*(1-easeInCubic(k));const l=wob(s-.17,.3,24,11);kx*=1+l*.7;ky*=1-l;
+    if(s>=.17&&s<.7) extra+=burst(cx,cy+230,s-.17,it.seed,{n:16,kinds:['conf'],cols:bad?['#39ff14','#0f0']:['#ffffff','#fff7a8'],spd:620,g:500,life:.5,z:330});}
+  else if(v===2){const k=easeOutCubic(s/.2);tx+=dir*1150*(1-k);rot+=-dir*16*(1-k)-dir*wob(s-.2,8,20,9);
+    if(s<.3) extra+=speedlines(cx,cy,s,it.seed,{n:18,col:bad?'#39ff14':'#ffffff',life:.3,z:290,r0:260});}
+  // exit
+  if(u>0){if(front){tx+=dir*1500*u;ty+=-280*u+1300*u*u;rot+=dir*440*u}else{ty+=1500*u*u;tx+=dir*140*u;rot+=dir*110*u}}
+  // body
+  let body='';const H=o.bigH||(o.h>=240?370:340),bs={enter:v===0?1:0,burstAt:land};
+  if(sp.startsWith('gauge:')){body=gaugeWin(cx,cy,s,t,sp.slice(6),it.seed);kx*=1.4;ky*=1.4}
+  else if(sp.startsWith('fold:')){body=foldWin(cx,cy,s,t,it.seed,1e9);kx*=1.35;ky*=1.35}
+  else if(sp.startsWith('grid:')){body=gridWin(cx,cy,s,t,sp.slice(5),o.count||'0',it.seed,side,1e9);kx*=1.3;ky*=1.3}
+  else if(sp.startsWith('counter:')){body=counterWin(cx,cy,s,t,sp.slice(8),it.seed,side,1e9);kx*=.98;ky*=.98}
+  else if(sp.startsWith('bar:')){body=barWin(cx,cy,s,t,+sp.slice(4),it.seed,side,1e9);kx*=1.25;ky*=1.25}
+  else if(sp.startsWith('morph:')){body=morphWin(cx,cy,s,t,it.seed,1e9);kx*=1.3;ky*=1.3}
+  else if(sp.startsWith('crew:')){const n=sp.slice(5),c=o.n||3;
+    for(let i=0;i<c;i++)body+=sprWin(n,{x:cx+(i-(c-1)/2)*170,y:cy+(i%2?-70:60),h:190,t,ta:it.ta+i*.14,te:1e9,title:'crew_member_'+(i+1)+'.exe',side,seed:it.seed+i,energy:E,z:300+i});}
+  else body=sprWin(sp,{x:cx,y:cy,h:H,t,ta:it.ta,te:1e9,title:o.title,url:'happy-to-help.html/'+sp,side,z:300,fx:o.fx,energy:E,seed:it.seed,glitch:o.glitch,spin:o.spin,alpha:o.alpha||1,bare:o.bare,...bs});
+  if(o.x) body+=xSlam(cx,cy,s-.4-land,330);
+  if(o.stamp) body+=stamp(cx+110,cy+80,s-.35-land,o.stamp,330);
+  if(o.comic) body+=comic(esc(o.comic),cx+130,cy-190,s-.2,{size:70,col:'#fff',life:1.2,z:340});
+  // a slow halo of rays behind whichever picture is in front
+  const halo=depth<.5&&u<=0?rays(cx,cy,400,t*38+it.seed*7,bad?'rgba(57,255,20,.28)':'rgba(255,255,255,.55)',250,clamp((s-land)/.25,0,1)*(1-depth*2)):'';
+  if(depth<.5&&u<=0&&s>land){const bp=beatPos(t),n=bad?7:5;
+    for(let i=0;i<n;i++){const a=i/n*Math.PI*2+bp*Math.PI*.5*(i%2?1:-1)*.5+it.seed,r=250+Math.sin(bp*Math.PI*2+i)*18;
+      const ox=cx+Math.cos(a)*r*1.05,oy=cy+Math.sin(a)*r*.95,g=spring(s-land-i*.05,20,8);
+      if(bad){const q=Math.floor(t*12)+i*7,jx=(hash(q)-.5)*40,jy=(hash(q+3)-.5)*40;
+        extra+=`<i class="fx" style="left:${f1(ox+jx)}px;top:${f1(oy+jy)}px;width:${f1(18*g)}px;height:${f1(18*g)}px;background:${i%2?'#39ff14':'#ff00c8'};z-index:320"></i>`}
+      else extra+=S(i%2?'star':'sparkle',ox,oy+hop(t+i*.1,10),44*g,{z:320,rot:Math.sin(t*3+i)*25})}}
+  const dim=depth>.05?`filter:brightness(${f3(1-.14*Math.min(depth,2))});`:'';
+  return `<div style="position:absolute;left:0;top:0;width:1920px;height:996px;z-index:${540+it.k*2};transform-origin:${cx}px ${cy}px;transform:translate(${f1(tx)}px,${f1(ty)}px) rotate(${f1(rot)}deg) scale(${f3(kx)},${f3(ky)});${dim}">${halo}${body}${extra}</div>`;
+}
+function renderItem(it,t,E){
+  const s=t-it.ta;if(s<0)return '';
+  if(it.stage) return stageItem(it,t,E);
+  const L=LINES[it.li],side=L[3],o=it.o,[x,y]=SLOT[it.slot]||[960,470],z=o.top?560:300+(it.seed%40),te=it.te;
+  if(t>te+.3) return '';
+  const sp=it.spr;
+  if(sp.startsWith('comic:')){let cx=x,cy=y;if(heroSideOf(it.li)){cx=stageXY(it.li)[0]+(hash(it.seed)-.5)*220;cy=150}
+    return comic(esc(sp.slice(6)),cx,cy,s,{col:o.col||'#ffe14d',size:o.size||96,rot:o.rot??-8,life:1});}
+  if(sp.startsWith('gauge:')) return t<te+.16?gaugeWin(x,y,s,t,sp.slice(6),it.seed):'';
+  if(sp.startsWith('fold:')) return foldWin(x,y,s,t,it.seed,te);
+  if(sp.startsWith('grid:')) return gridWin(x,y,s,t,sp.slice(5),o.count||'0',it.seed,side,te);
+  if(sp.startsWith('counter:')) return counterWin(x,y,s,t,sp.slice(8),it.seed,side,te);
+  if(sp.startsWith('bar:')) return barWin(x,y,s,t,+sp.slice(4),it.seed,side,te);
+  if(sp.startsWith('morph:')) return morphWin(x,y,s,t,it.seed,te);
+  if(sp.startsWith('swarm:')) return t<te+.25?swarm(sp.slice(6),o.n||8,s,t,it.seed,te,side):'';
+  if(sp.startsWith('stream:')) return stream(sp.slice(7),o.n||10,s,t,it.seed,te);
+  if(sp.startsWith('clash:')){const[,a,b]=sp.split(':');return clash(a,b,x,y,s,t,it.seed,te)}
+  if(sp.startsWith('sticker:')) return sticker(sp.slice(8),o.col||'#ffe14d',s,t,it.seed);
+  if(sp.startsWith('crew:')){let h='';const n=sp.slice(5),c=o.n||3;for(let i=0;i<c;i++)h+=sprWin(n,{x:x-(i-(c-1)/2)*0,y:y-250+i*250,h:150,t,ta:it.ta+i*.12,te,title:'crew_member_'+(i+1)+'.exe',side,seed:it.seed+i,energy:E});return h}
+  if(sp==='merge'){ // cure and poison slide together and become one tool
+    const k=easeInOut(s/.9);let h='';
+    h+=S('pill',lerp(205,960,k),lerp(500,850,k),lerp(200,170,k),{z:560,alpha:1-k*.9});h+=S('poison',lerp(1715,960,k),lerp(500,850,k),lerp(200,170,k),{z:561,alpha:1-k*.9});
+    if(k>.85) h+=S('wrench',960,850,200*spring(s-.8,22,8),{z:562})+burst(960,850,s-.8,it.seed,{z:563,cols:['#fff','#ffe14d']});
+    return h;}
+  let px=x,py=y,hh=o.h||200,zz=z;
+  if(it.slot==='C'){const park=SLOT[o.park||(it.seed%2?'R2':'L2')],k=easeInOut((s-.8)/.28);px=lerp(x,park[0],k);py=lerp(y,park[1],k);hh=lerp(hh,Math.min(hh,210),k);zz=k<1?560:300}
+  let h=sprWin(sp,{x:px,y:py,h:hh,t,ta:it.ta,te,title:o.title,url:'happy-to-help.html/'+sp,side,z:zz,fx:o.fx,energy:E,seed:it.seed,glitch:o.glitch,spin:o.spin,alpha:o.alpha||1,bare:o.bare,calm:L[4]==='word'});
+  if(o.x) h+=xSlam(px,py,s-.4,zz+8);
+  if(o.stamp) h+=stamp(px+60,py+40,s-.35,o.stamp,zz+8);
+  if(o.comic) h+=comic(esc(o.comic),px+90,py-120,s-.2,{size:70,col:'#fff',life:1.2});
+  return h;
+}
+function scene(t,E){
+  let h='';
+  for(let i=firstIdx(ITEMS,t-20,x=>x.ta);i<ITEMS.length&&ITEMS[i].ta<=t;i++){const it=ITEMS[i];if(it.stage?t<it.tOut+.5:t<=it.te+.3)h+=renderItem(it,t,E)}
+  return h;
+}
+
+// =====================================================================================
+// 10. hero window: the sung line, word by word (karaoke pops)
+// =====================================================================================
+// hl: keywords (the words that summon a picture) are bold and get a highlighter swipe when sung.
+// hl={kw:Set,col,full,txt}: full=true paints a whole-height block (terminal "selection"), txt recolours the word.
+// typing lands on the hi-hats: message boxes, terminals and the address bar take one keystroke per 16th note and
+// catch up with the vocal on each tick, so a word being sung types out letter by letter
+const tick16=t=>beatTime(Math.floor(beatPos(t)*4)/4);
+function typedWords(li,t){   // [[word, letters typed, time it was finished]] up to the word being typed
+  const L=LINES[li],W=L[6]||[],tq=tick16(t)+.03,out=[];
+  for(let k=0;k<W.length;k++){const[tok,tw]=W[k];if(tq<tw)break;
+    const nxt=k+1<W.length?W[k+1][1]:L[1],dur=clamp(nxt-tw,.12,.5),n=clamp(Math.ceil((tq-tw)/dur*tok.length),1,tok.length);
+    out.push([tok,n,tw+dur]);if(n<tok.length)break}
+  return out;
+}
+function typedText(li,t,accent,hl){
+  let h='';
+  typedWords(li,t).forEach(([tok,n,tf],k)=>{const full=n>=tok.length,isK=!!(hl&&hl.kw&&hl.kw.has(k));
+    let st=isK?'font-weight:700;font-size:1.12em;':'';
+    if(isK&&full){const wp=clamp(easeOutCubic((t-tf)/.16),0,1),c=hl.col,g=hl.full?`${c} 0,${c} 100%`:`transparent 50%,${c} 50%,${c} 92%,transparent 92%`;
+      st+=`background:linear-gradient(${g}) no-repeat;background-size:${f1(wp*100)}% 100%;color:${hl.txt||accent};`}
+    else if(!full) st+=`color:${accent};`;
+    h+=`<span class="kw" style="${st}">${esc(tok.slice(0,n))}</span> `});
+  return `<span>${h}</span>`;
+}
+function karaoke(li,t,accent='#ff3fa4',hl=null,stream=false){
+  const L=LINES[li],W=L[6]||[];let h='';
+  for(let k=0;k<W.length;k++){
+    const[tok,tw]=W[k],s=t-tw+.03,isK=!!(hl&&hl.kw&&hl.kw.has(k));
+    const ks=isK?'font-weight:700;font-size:1.12em;':'';
+    if(s<0){if(!stream)h+=`<span class="kw" style="visibility:hidden;${ks}">${esc(tok)}</span> `;continue}
+    const nxt=k+1<W.length?W[k+1][1]:L[1],cur=t<nxt-.03;
+    const sc=1+wob(s,isK?.5:.42,17,11);
+    let st=`transform:scale(${f3(sc)}) rotate(${f1(wob(s,isK?10:6,15,12))}deg);${ks}`;
+    if(isK){const wp=easeOutCubic(s/.16),c=hl.col,g=hl.full?`${c} 0,${c} 100%`:`transparent 50%,${c} 50%,${c} 92%,transparent 92%`;
+      st+=`background:linear-gradient(${g}) no-repeat;background-size:${f1(wp*100)}% 100%;color:${hl.txt||accent};`}
+    else if(cur||s<.2) st+=`color:${accent};`;
+    h+=`<span class="kw" style="${st}">${esc(tok)}</span> `;
+  }
+  return `<span>${h}</span>`;
+}
+const heroSizes={chat:[1040,600],user:[1040,600],tweet:[1040,470],chorus:[1100,420],notepad:[1040,480],terminal:[1040,480],call:[1040,560],
+  skype:[1060,580],word:[900,380],same:[1060,380],dream:[1120,660],outro:[1100,560],chant:[900,300]};
+function heroSize(li){const L=LINES[li];if(!L)return[1100,440];let[W,H]=heroSizes[L[4]]||[1100,440];if(L[4]==='word'&&L[2].length>8)W=1180;return[W,H]}
+function heroBox(li){const r=RUN_OF[li];if(r&&r.a!==li)return heroBox(r.a);   // one chat window per run
+  const[W,H]=heroSize(li),sd=heroSideOf(li);
+  if(LINES[li][4]==='outro') return{x:(1920-W)/2,y:996-H-40,w:W,h:H};   // under the shrunken dream
+  if(sd) return{x:sd<0?70:1920-70-W,y:(996-H)/2-6+(hash(li*13+2)-.5)*60,w:W,h:H};
+  const dx=(hash(li*13+1)-.5)*110,dy=(hash(li*13+2)-.5)*64;return{x:(1920-W)/2+dx,y:(996-H)/2+dy-6,w:W,h:H}}
+// the largest font size at which line li's words fill a w x h box
+function lineFit(li,fam,w,h,max,o={}){const W=LINES[li][6]||[];return fitSize(W.map(x=>x[0]),fam,w,h,{max,kw:KWSETS[li],...o})}
+const WHO={doom:['fire','#300','doomer_tab','@pdoom_99'],eacc:['rocket','#f2d','e/acc_tab','@nothingwentfoom'],norm:['pdf','#888','normal_tech','@just_a_tool'],
+  ai:['assistant','#ff8ad8','assistant','@happy_to_help'],bot:['bot','#246','totally_real_american_968','@real_patriot_0968']};
+const NOTE_MENU='<div class="m"><u>F</u>ile <u>E</u>dit F<u>o</u>rmat <u>V</u>iew <u>H</u>elp</div>';
+// 3.4: a pause-worthy real detail hangs off the lyric window, checked against incidents.md or the primary source; on the
+// three lines where the song overstates its source, a fact-check card corrects it instead. [line, trigger, kind, text]:
+// the trigger is a sung word, or seconds after the line starts.
+const NOTES=[
+  [/^Third tab/,'normal','tag','📄 “AI as Normal Technology” · Narayanan &amp; Kapoor'],
+  [/^Then a model read/,'model','tag','AlphaFold DB: 200M+ structures · 2M+ researchers · 190 countries'],
+  [/^Found an antibiotic/,'hiding','tag','It was a shelved diabetes candidate · cleared infections in mice'],
+  [/^I'm a lab/,.4,'tag','MASAI trial: 29% more cancers found · radiologists made every call'],
+  [/^Found a hole in SQLite/,.4,'tag','SQLite fixed it the same day, before any release included it'],
+  [/^Wrote the tests/,'tests','tag','The AI wrote the harness · a fuzzer found the crash · humans fixed it'],
+  [/^"It's a defensive test/,'defensive','tag','They told it this was an “authorised defensive test”'],
+  [/^Ninety percent/,'hacking,','fact','Anthropic said 80–90% of the work, and that it “frequently overstated findings”. No fraction given.'],
+  [/^--dangerously/,.2,'tag','Sent by: a poisoned Nx npm package, telling AI CLIs to hunt for secrets'],
+  [/^Lost her voice/,.4,'tag','AI voice trained on her old speeches · illness: PSP'],
+  [/^"Mom, they've got me/,'wire','fact','The caller refused a wire (“that’s traceable”) and wanted $50k in cash, down from $1M.'],
+  [/^Fifteen transfers/,'twenty-five','tag','HK$200M ≈ US$25.6M, sent in 15 transfers'],
+  [/^A million claims/,'hour,','fact','About ⅓ million sentences a day, not a million claims an hour (Full Fact, 2025).'],
+  [/^Nine-sixty-eight/,.3,'tag','Built with an AI persona tool · RT-linked · FSB-overseen (US DOJ)'],
+  [/^Grandma's on the line/,.3,'tag','Answered 1,000+ scam calls, rambling about knitting and family'],
+  [/^Ping! Zing!/,.3,'tag','<span class="bn">BANNED</span>used it for personas, translation and tracking workers\' debts'],
+  [/^And sometimes the one misfiring/,.5,'tag','Test log: o3 rewrote its shutdown script in 7 of 100 runs']];
+const NOTE_OF=LINES.map((L,li)=>{const n=NOTES.find(x=>x[0].test(L[2]));if(!n)return null;
+  return {ta:typeof n[1]==='number'?L[0]+n[1]:wordTime(li,n[1]),kind:n[2],txt:n[3]}});
+function heroNote(li,t,x,y,b){
+  const n=NOTE_OF[li];if(!n)return '';const s=t-n.ta;if(s<0)return '';
+  const k=spring(s,20,8),fc=n.kind==='fact';
+  return `<div class="${fc?'fchk':'dtag'}" style="left:${f1(x+30)}px;top:${f1(y+b.h+2)}px;transform:rotate(${fc?1:-1.2}deg) scale(${f3(k)})">${fc?'<b>✎ FACT CHECK</b>':''}${n.txt}</div>`;
+}
+const PEEK=new Set(['tweet','chorus','notepad','terminal','call','skype','same','chant']);   // lyric windows the face peeks over
+function hero(li,t,E,sec){
+  const L=LINES[li],[t0,t1,text,side,skin,o={}]=L,bad=side==='b';
+  const HB=heroBox(li),kw=KWSETS[li];
+  const K=(a,hl)=>karaoke(li,t,a,hl?{kw,...hl}:null);
+  const src=o.src?`<div class="src">${esc(o.src)}</div>`:'';
+  let title='Assistant',fav='#ff8ad8',cls=bad?'glitch':'',body='';
+  const prevSame=li>0&&LINES[li-1][4]==='chat'&&(skin==='chat'||skin==='user')&&t0-LINES[li-1][1]<1?LINES[li-1][2]:null;
+  // verse windows: the lyric is sized to fill its window
+  switch(skin){
+    case 'chat': case 'user': case 'outro': case 'dream': {
+      const c=chatBody(li,t,HB);body=c.body;title=c.title;fav=c.fav;cls=c.cls;break;}
+    case 'tweet': {
+      const[sp,bg,nm,hd]=WHO[o.who||'doom'],fs=lineFit(li,'"DejaVu Sans"',(HB.w-56)*.95,HB.h-58-44-90-18-50,92);
+      body=`<div class="tw"><div class="av" style="background:${bg}">${S(sp,36,36,62,{z:1})}</div><div class="nm">${nm}</div><div class="hd">${hd}${o.who==='bot'?'<span class="nr">☑ I\'m not a robot (×968)</span>':''}</div>
+        <div class="tx" style="font-size:${fs}px;line-height:1.14">${K('#1da1f2',{col:'#ffe14d'})}</div>${tweetStats(li,t)}${src}</div>`;
+      title='twitter-ish.com'; fav='#1da1f2'; if(o.who==='bot')cls='glitch'; break;}
+    case 'chorus':
+      body=o.sting?plain('#000',bigText(K('#ffe14d',{col:'#ff3fa4',txt:'#fff'}),76,'#fff')):plain('#fff',bigText(K('#ff3fa4',{col:'#ffe14d'}),70,'#7a5cff'));
+      title='Happy to Help!'; break;
+    case 'notepad': {
+      const fs=lineFit(li,'"Liberation Sans"',(HB.w-40)*.95,HB.h-58-24-28-(o.src?40:0),112);
+      body=`<div class="np">${NOTE_MENU}<pre style="font-size:${fs}px;line-height:1.14">${K('#e2445c',{col:'#ffe14d'})}</pre>${src}</div>`;
+      title='cures.txt - Notepad'; fav='#ffb000'; break;}
+    case 'terminal': {
+      const fs=lineFit(li,'VT',(HB.w-44)*.95,HB.h-58-36-40-(o.src?40:0),124,{lh:1.1});
+      body=`<div class="term"><div class="p" style="font-size:30px;margin-bottom:8px">C:\\Users\\???&gt;</div><div style="font-size:${fs}px;line-height:1.1">${typedText(li,t,'#39ff14',{kw,col:'#39ff14',full:1,txt:'#0A0021'})}<span style="opacity:${Math.floor(t*3)%2}">▌</span></div>${src}</div>`;
+      title='cmd.exe'; fav='#0f0'; cls='bad'; break;}
+    case 'call': {
+      const good=!bad,bgc=good?'linear-gradient(#ffb7d5,#ffe3a3)':'linear-gradient(#300,#000)',vib=good?0:Math.sin(t*90)*4;
+      const fs=lineFit(li,'"DejaVu Sans"',(HB.w-60)*.95,HB.h-58-270-(o.src?36:0),76);
+      // Daisy kept scammers on the line for up to 40-50 minutes: her timer runs from 40:00 at 100x speed
+      const el=40*60+Math.max(0,t-t0)*100,tm=`${String(Math.floor(el/3600)).padStart(2,'0')}:${String(Math.floor(el/60)%60).padStart(2,'0')}:${String(Math.floor(el)%60).padStart(2,'0')}`;
+      body=`<div class="call" style="background:${bgc};color:${good?'#4a0e2e':'#fff'}"><div class="who" style="transform:translateX(${f1(vib)}px)">📞 ${esc(o.caller)}</div><div class="st">${good?`on call with a scammer · ${tm}`:'incoming call…'}</div>
+        <div><span class="btn" style="background:#2ecc71;color:#fff">✆</span><span class="btn" style="background:#e74c3c;color:#fff">✕</span></div><div class="ln" style="font-size:${fs}px;line-height:1.12">${K(good?'#c2185b':'#ff3b3b',good?{col:'#ffffff'}:{col:'#ff3b3b',full:1,txt:'#fff'})}</div>${src}</div>`;
+      title=good?'Call in progress':'Incoming call'; fav=good?'#ffb000':'#f33'; cls=bad?'bad':''; break;}
+    case 'skype': {
+      const lab=['CFO','Finance','Legal','You'];
+      body=`<div class="sky">${lab.map((l,i)=>`<div class="tile" style="${i<3&&Math.floor(t*12+i)%5===0?'filter:hue-rotate(140deg) contrast(2)':''}">${S(i<3?(Math.floor(t*6+i)%4===0?'mask':'assistant'):'assistant_sweat',240,85,150,{z:1,filter:i<3?RGBSPLIT:''})}<b>${l}</b></div>`).join('')}<div class="ln">${K('#ffe14d',{col:'#ff3b3b',full:1,txt:'#fff'})}</div><div class="tip">💡 Tip: ask the CFO which book they recommended</div>${src}</div>`;
+      title='Video call (4)'; fav='#00aff0'; cls='bad'; break;}
+    case 'word': return wordHero(li,t,E);
+    case 'same':
+      body=`<div class="np">${NOTE_MENU}<pre style="font-size:64px">${K('#111')}</pre></div>`;
+      title='same_tool.txt - Notepad'; cls=''; break;
+    case 'happy': return happyHero(li,t,E);
+    case 'chant': {
+      const W=L[6];if(!W||t<W[0][1]-.05)return '';
+      body=plain('#000',bigText(K('#ff3fa4'),84,'#fff','pix'));title='mouse.exe';cls='';break;}
+  }
+  // hop from the previous line's box, leaving a Windows-XP drag trail
+  const b=heroBox(li),pb=li>0?heroBox(li-1):b,s=t-SHOW_T[li],k=easeOutBack(clamp(s/.13,0,1)),x=lerp(pb.x,b.x,k),y=lerp(pb.y,b.y,k);
+  let h='';
+  if(s<.32&&li>0&&LINES[li-1][4]!=='happy'&&(pb.x!==b.x||pb.y!==b.y)){
+    for(let j=1;j<=5;j++){const kk=easeOutBack(clamp((j/6)*.13/.13,0,1));const tx=lerp(pb.x,b.x,kk),ty=lerp(pb.y,b.y,kk);
+      if(s>j*.024) h+=pop({x:tx,y:ty,w:b.w,h:b.h,title:esc(title),url:'…',body:'',cls:'frame',z:480+j,alpha:clamp(1-(s-.1)/.22,0,1)});}
+  }
+  const[sx,sy]=squash(t,E*.018),land=wob(s-.13,.06,22,12);
+  const tr=`scale(${f3(sx*(1+land))},${f3(sy*(1-land))})`;
+  const url='happy-to-help.html/'+typedURL(li,t);
+  h+=pop({x,y,w:b.w,h:b.h,title:esc(title),url,body,fav,cls,z:500,tr,org:'50% 100%'});
+  if(PEEK.has(skin)&&o.who!=='ai') h+=S('assistant',x+b.w-70,y-6,150,{z:506,sx,sy,rot:-6+Math.sin(t*2.3)*4,org:'50% 100%'});
+  h+=heroNote(li,t,x,y,b);
+  if(skin==='dream'&&/^Happy to help/.test(text)){const s2=t-wordTime(li,0),cx=b.x+b.w/2,cy=b.y+b.h/2;
+    h+=burst(cx,cy,s2,li*17,{n:34,kinds:['conf','conf','spark'],spd:1150,g:900,life:1.5,z:720})+floaters(cx,cy-30,s2-.2,li*5,{kind:'heart',n:12,z:700,spread:760,dur:2})}
+  if(o.refuse&&t>wordTime(li,'No.')-.02){const ss=t-wordTime(li,'No.');
+    h+=winPop(1500,780,560,230,ss,t,{title:'Assistant',url:'declined',z:540,fav:'#2ecc71',seed:li,
+      body:`<div class="w7" style="font-size:26px">${S('assistant_wink',470,70,90,{z:1})}Sorry, I can't help<br>with that one.<br>Here's a cure instead!<br><span class="b">OK</span></div>`});}
+  return h;
+}
+// tweet footers: engagement that matches how each kind of post actually lands. Doom goes viral, e/acc gets
+// ratio'd (more replies than likes), the essay gets bookmarked (and not read), the AI's "…cute." gets 3 likes,
+// and the bot farm likes its own post exactly 968 times. Counts roll up while the line plays.
+const TW_ICON={rep:'<path d="M4 5h16v11H10l-5 4v-4H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+  rt:'<path d="M6 16V7h10M13 4l3 3-3 3M18 8v9H8M11 20l-3-3 3-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+  like:'<path d="M12 20s-7.5-4.6-7.5-10.2A4.2 4.2 0 0 1 12 7.3a4.2 4.2 0 0 1 7.5 2.5C19.5 15.4 12 20 12 20z" fill="none" stroke="currentColor" stroke-width="2"/>',
+  view:'<path d="M5 20v-7M10 20V6M15 20v-9M20 20V3" fill="none" stroke="currentColor" stroke-width="2.4"/>',
+  mark:'<path d="M7 4h10v16l-5-4-5 4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>'};
+const TW_STATS=[[/^Left tab/,[2100,4800,11000,2.3e6]],[/^Right tab/,[9400,312,1100,8.8e5]],[/^Third tab/,[41,380,1200,9.6e4,3100]],
+  [/^…cute/,[0,0,3,41]],[/^Shoggoth/,[800,6600,23000,4.1e6]],[/^Basilisk/,[3300,1900,7700,1.2e6]],[/^Nine-sixty-eight/,[0,968,968,968]]];
+function kfmt(n){n=Math.round(n);return n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e4?Math.round(n/1e3)+'K':n>=1e3?(n/1e3).toFixed(1)+'K':String(n)}
+function tweetStats(li,t){
+  const L=LINES[li],e=TW_STATS.find(x=>x[0].test(L[2]));if(!e)return '';
+  const[rep,rt,like,view,mark]=e[1],bots=rt===968,u=clamp((t-L[0])/Math.max(.5,L[1]-L[0]),0,1);
+  const k=bots?(t-L[0]>.35?1:0):.55+.45*easeOutCubic(u);   // the bots all like it in the same instant
+  const ic=n=>`<svg viewBox="0 0 24 24">${TW_ICON[n]}</svg>`;
+  const ratio=rep>like*3;
+  return `<div class="ft"><span${ratio?' class="hot"':''}>${ic('rep')}${kfmt(rep*k)}</span><span${bots&&k?' class="rt"':''}>${ic('rt')}${kfmt(rt*k)}</span><span${bots&&k?' class="hot"':''}>${ic('like')}${kfmt(like*k)}</span><span>${ic('view')}${kfmt(view*k)}</span>${mark?`<span>${ic('mark')}${kfmt(mark*k)}</span>`:''}</div>`;
+}
+// the clock in chat timestamps runs from just before midnight to dawn over the song
+function chatClock(t){const m=(23*60+58+t*1.53)%(1440);let h=Math.floor(m/60);const mm=Math.floor(m%60),ap=h>=12?'PM':'AM';h=h%12||12;return `${h}:${String(mm).padStart(2,'0')} ${ap}`}
+const SEND_SVG='<svg viewBox="0 0 24 24"><path d="M3 11.5 21 3l-6.5 18-3-7.5z" fill="#fff"/></svg>';
+const REACTS=['heart','confetti','check','star','sparkle','heart','trophy','heart'];
+// one chat window per run: earlier messages shrink and scroll up, the AI's current line streams into a big bubble
+// word by word, and a sender's line is typed into the message box first, then sent
+const novelChip=j=>/^"It's for a novel/.test(LINES[j][2])?'<span class="chip">📄 my_novel.docx · 0 words · created 2 sec ago</span>':'';
+const SQ_LINE=LINES.findIndex(L=>/nuance-cope/.test(L[2])),SQ_T=SQ_LINE>=0?wordTime(SQ_LINE,'nuance-cope'):1e9;
+const SQ_T2=SQ_LINE>=0?LINES[SQ_LINE+1][0]:1e9,SQ_T3=SQ_LINE>=0?LINES[SQ_LINE+1][1]:1e9;
+function squig(j,html,t){return j===SQ_LINE?html.replace(/(>|^|\s)(nuance-cope,)/,`$1<u class="sq${t>=SQ_T+.1&&t<SQ_T2?' tip':t>=SQ_T2&&t<SQ_T3?' tip r':''}">$2</u>`):html}
+function chatBody(li,t,HB){
+  const run=RUN_OF[li],L=LINES[li],[t0,,,side,skin,o={}]=L,dream=run.fam==='dream',outroF=run.fam==='outro';
+  const isMe=j=>LINES[j][4]==='user',SM=outroF?24:22;
+  const av=(j,sz)=>S('assistant',sz/2,sz/2+2,sz*.92,{z:1,still:j!==li||isMe(li)});
+  const msgsH=HB.h-58-64-(isMe(li)?0:92)-24;
+  const bigFs=j=>{const W=LINES[j][6]||[];return fitSize(W.map(x=>x[0]),'"DejaVu Sans"',(HB.w*.78-44)*.95-(isMe(j)?60:0),isMe(j)?HB.h-58-64-24-150:msgsH-(j>run.a?96:40),{max:isMe(j)?84:(dream?76:80),kw:KWSETS[j]})};
+  const accent=j=>isMe(j)?'#fff3a0':dream?'#12a150':'#7a5cff';
+  const row=(j,inner,fs,extra='')=>isMe(j)?`<div class="row out" style="font-size:${fs}px;line-height:1.14${extra}"><div class="bub">${inner}</div></div>`
+    :`<div class="row in" style="font-size:${fs}px;line-height:1.14${extra}"><div class="sav${j===li?' big':''}">${av(j,j===li?96:40)}</div><div class="bub">${inner}</div></div>`;
+  let rows=`<div class="day">${dream?'Today':'Today'} ${chatClock(LINES[run.a][0])}</div>`;
+  if(dream) rows+=`<div class="day" style="background:#c9f2c7;color:#12743a">✓ verified human · a person is in the loop</div>`;
+  // history
+  for(let j=run.a;j<li;j++){
+    const W=LINES[j][6]||[],txt=esc(W.map(x=>x[0]).join(' ')||LINES[j][2]),sh=clamp((t-LINES[j+1][0])/.2,0,1);
+    const fs=j===li-1&&!isMe(j)?lerp(bigFs(j),SM,easeOutCubic(sh)):SM;
+    let rx='';
+    if(dream&&!isMe(j)){const rs=t-LINES[j][1]-.15;if(rs>0){const sc=spring(rs,22,9);rx=`<div class="rx" style="transform:scale(${f3(sc)})">${S(REACTS[j%REACTS.length],13,13,22,{z:1})}<span style="margin-left:16px">${1+(j*7)%9}</span></div>`}}
+    const pop_=isMe(j)&&j===li-1?`;transform:scale(${f3(.7+.3*easeOutBack(sh))});transform-origin:100% 100%`:'';
+    rows+=row(j,squig(j,txt,t)+rx+novelChip(j),fs,pop_);
+    if(isMe(j)&&(j+1>li-1||!isMe(j+1))) rows+=`<div class="rc">${j===li-1&&sh<1?'Delivered':'Seen ✓✓ '+chatClock(LINES[j+1][0])}</div>`;
+  }
+  // the current line
+  const W=LINES[li][6]||[],first=W.length?W[0][1]:t0,me=isMe(li);
+  let composer=`<div class="inp">Message Assistant…${Math.floor(t*2.2)%2?'':'<span style="color:#1a1026">|</span>'}</div><div class="snd">${SEND_SVG}</div>`;
+  if(me){
+    const fs=bigFs(li);
+    composer=`<div class="inp on" style="font-size:${fs}px">${typedText(li,t,'#ff3fa4',{kw:KWSETS[li],col:'#ffe14d'})}<span style="opacity:${Math.floor(t*4)%2}">|</span></div><div class="snd on">${SEND_SVG}</div>`;
+  } else if(t<first-.03){
+    rows+=`<div class="row in"><div class="sav big">${av(li,96)}</div><div class="bub ty">${[0,1,2].map(i=>{const ph=beatPos(t)*2+i*.33,f=ph-Math.floor(ph);return `<i style="transform:translateY(${f1(-9*Math.sin(Math.PI*f))}px)"></i>`}).join('')}</div></div>`;
+  } else {
+    const fs=bigFs(li),ps=t-first,sc=.6+.4*easeOutBack(clamp(ps/.14,0,1));
+    rows+=row(li,squig(li,karaoke(li,t,accent(li),{kw:KWSETS[li],col:dream?'#c9f2c7':'#ffe14d'},true),t),fs,`;transform:scale(${f3(sc)});transform-origin:0 100%`);
+  }
+  const singing=!me&&t>=first-.03&&t<L[1];
+  const hdr=`<div class="chd"><div class="cav">${av(li,48)}</div><div><div class="cnm">Assistant${dream?' <span style="color:#2ecc71">✓</span>':''}</div><div class="cst" style="color:${singing?'#7a5cff':'#2ecc71'}">${singing?'typing…':me?'online · reading…':'online'}</div></div><div class="cic">☎ ⋯</div></div>`;
+  const body=`<div class="cw">${hdr}<div class="cms">${rows}</div><div class="ccp">${composer}</div><div class="dsc">${li<=1?'Terms of Service · read by 0 people · ☑ I agree':'Assistant can make mistakes. Check important info.'}</div>${o.src?`<div class="src" style="bottom:auto;top:15px;right:150px">${esc(o.src)}</div>`:''}</div>`;
+  const bad=side==='b'||(o.self&&Math.floor(t*8)%3===0);
+  return {body,title:dream?'Happy to Help! ✓':me?'??? is typing…':'Assistant — chat',fav:dream?'#2ecc71':me?'#f0f':'#ff8ad8',cls:side==='b'?'glitch':bad?'glitch2':''};
+}
+function typedURL(li,t){return esc(typedWords(li,t).map(([tok,n])=>tok.slice(0,n)).join('_').replace(/\s/g,'_'))}
+// pass 5 / pass 6 / HELP: one big word window that slams in
+const PING_T0=(LINES.find(L=>L[4]==='word')||[1e9])[0],HELP_T0=(LINES.find(L=>L[4]==='word'&&/^HELP/.test(L[2]))||[1e9])[0];
+// HELP text alternates ink and the darker hot colours (relative luminance .19 to .29), never yellow or cyan, so the
+// stutter flips colour without a big brightness jump
+const helpCol=i=>LINES[i][3]==='b'?INK:['#ff3fa4','#7a5cff','#ff5a36'][i%3];
+// the HELPs stutter nearly on the spot, so each covers the last and the pile, not the page, carries the motion
+const helpBox=(i,W,H)=>({x:(1920-W)/2+(hash(i*13+1)-.5)*28,y:(996-H)/2-6+(hash(i*13+2)-.5)*16});
+function wordHero(li,t,E){
+  const L=LINES[li],[t0,t1,text,side,,o={}]=L,bad=side==='b',s=t-t0,help=/^HELP/.test(text),quick=t1-t0<.6;
+  const W=text.length>8?1180:880,H=360,b=help?helpBox(li,W,H):heroBox(li);
+  // the faster the ping-pong, the shorter the slam: a window flying in from far off lights up the regions it crosses
+  const dir=hash(li*3)*Math.PI*2,ent=1-easeOutCubic(s/.09),dx=Math.cos(dir)*(help?50:quick?300:600)*ent,dy=Math.sin(dir)*(help?30:quick?170:340)*ent;
+  // HELPs barely squash, so each new one covers the last without a dark gap (the stutter must not strobe)
+  const smear=ent>0.02?1+ent*(help?.1:quick?.3:.8):1+wob(s-.09,help?.03:quick?.04:.07,26,14);
+  const col=help?helpCol(li):bad?'#ffffff':HOT[li%6],bg=help?'#fff':bad?'#0A0021':'#fff';   // HELPs all white: the stutter must not strobe
+  const size=text.length>12?92:text.length>8?110:170;
+  const body=plain(bg,bigText(`<span class="${bad?'rgb':''}">${K2(text,s)}</span>`,size,col,'pix stroke'))+(bad&&!help?'<div class="scan"></div>':'');
+  let h=pop({x:b.x+dx,y:b.y+dy,w:W,h:H,title:esc(text),url:'happy-to-help.html/'+slug(text),body,fav:bad?'#39ff14':HOT[li%6],z:500,cls:bad?'bad':'',
+    tr:`scale(${f3(smear)},${f3(2-smear)})`,org:'50% 50%'});
+  if(help&&s<.2&&/^HELP/.test((LINES[li-1]||[])[2]||'')){const pb=helpBox(li-1,W,H),pt=LINES[li-1][2];   // the last HELP stays under the new one
+    h+=pop({x:pb.x,y:pb.y,w:W,h:H,title:esc(pt),url:'happy-to-help.html/'+slug(pt),body:plain('#fff',bigText(K2(pt,1),size,helpCol(li-1),'pix stroke')),z:499,cls:LINES[li-1][3]==='b'?'bad':''});}
+  if(s<.35) h+=speedlines(960,480,s,li,{col:bad?'#39ff14':'#ffffff',z:470,...(help?{n:14,op:.4}:{n:20,op:.6})});
+  if(!help){ // one starburst stays up behind the whole ping-pong and flips colour with each word. Yellow and green are
+    // about equally bright (relative luminance .75 and .72), so the swaps change colour without flashing.
+    const a=Math.min(clamp((t-PING_T0)/.5,0,1),clamp((HELP_T0-t)/.35,0,1)),kick=1+.05*Math.exp(-s*12);
+    h+=starburst(960,478,700*kick,18,t*.12,bad?'#39ff14':'#ffe14d',INK,440,a);}
+  if(help){ // HELP windows pile up
+    const first=LINES.findIndex(l=>l[4]==='word'&&l[2]==='HELP');
+    // each one grows in (no overshoot) when its HELP ends, all on white, so the pile only ever gets brighter
+    for(let j=first;j<li;j++){const pj=LINES[j],sj=t-LINES[j+1][0],hx=160+hash(j*5)*1400,hy=90+hash(j*9)*640;
+      h+=winPop(hx+200,hy+120,420,230,sj,t,{title:'help.exe',url:'help/'+j,seed:j,side:pj[3],z:420+j,calm:1,
+        body:plain('#fff',S(pj[3]==='b'?'assistant_glitch':'assistant',210,86,150,{z:1}))});}
+  }
+  return h;
+}
+const K2=(text,s)=>`<span class="kw" style="transform:scale(${f3(1+wob(s,.3,18,10))})">${esc(text)}</span>`;
+// chorus hook: HAPPY / TO / HELP! windows slam in on the sung words, echoes ring around
+function happyHero(li,t,E){
+  const L=LINES[li],[t0]=L,W=L[6]||[];
+  const T=[0,1,2].map(i=>W[i]?W[i][1]:t0+i*.3),EC=[3,4,5].map(i=>W[i]?W[i][1]:t0+2+i*.3);
+  const words=['HAPPY','TO','HELP!'],cols=['#ff3fa4','#ffb000','#00b8ff'],spr=['heart','star','check'];
+  let h='';
+  if(t<T[0]){ // stutter pickup "H- H-"
+    const n=Math.floor((t-t0)/.11);for(let j=0;j<=n&&j<4;j++){const sj=t-(t0+j*.11);
+      h+=winPop(520+j*260,300+(j%2)*120,220,170,sj,t,{title:'H-',url:'h',seed:li+j,z:505+j,body:plain('#fff',bigText('H-',90,cols[j%3],'pix'))});}
+  }
+  for(let i=0;i<3;i++){
+    const s=t-T[i]+.02;if(s<0)continue;
+    const fx0=100+i*590,fy0=200+(i===1?80:0),w=540,hh=430;
+    const from=[[0,-900],[0,900],[1100,0]][i],ent=1-easeOutCubic(s/.1);
+    const x=fx0+from[0]*ent,y=fy0+from[1]*ent;
+    const st=ent>.02?1+ent*.9:1+wob(s-.1,.18,24,12);
+    const[sx,sy]=squash(t,E*.05);
+    const vert=i<2;
+    const tr=vert?`scale(${f3((2-st)*sx)},${f3(st*sy)})`:`scale(${f3(st*sx)},${f3((2-st)*sy)})`;
+    const body=plain('#fff',bigText(`<span class="rainbow">${words[i]}</span>`,i===1?190:150,cols[i],'pix stroke')+S(spr[i],w-70,hh-130,90,{z:3,rot:Math.sin(t*5+i)*12}));
+    h+=pop({x,y,w,h:hh,title:'Happy to Help!',url:'happy-to-help.html/'+words.slice(0,i+1).join('_'),body,fav:cols[i],z:500+i,tr,org:'50% 100%'});
+    if(s<.45) h+=starburst(fx0+w/2,fy0+hh/2,340*easeOutBack(s/.12)*(1-s/.45),16,s+i,cols[i],INK,495+i,1-s/.45);
+    if(s<.4) h+=speedlines(fx0+w/2,fy0+hh/2,s,li*3+i,{col:'#fff',z:490});
+    h+=burst(fx0+w/2,fy0+hh/2,s,li*11+i,{n:22,kinds:['conf','conf','spark'],spd:1000,z:720,life:1.1});
+  }
+  // echo "(happy to help!)": small windows pop around the ring
+  for(let i=0;i<3;i++){const s=t-EC[i]+.02;if(s<0)continue;
+    for(let j=0;j<2;j++){const a=(i*2+j)/6*Math.PI*2+t*.7,x=960+Math.cos(a)*820,y=470+Math.sin(a)*380;
+      h+=winPop(x,y,300,170,s-j*.06,t,{title:'(echo)',url:'('+['happy','to','help!)'][i],seed:li+i*2+j,z:520+i*2+j,
+        body:plain(PASTEL[(i*2+j)%6],bigText('('+['happy','to','help!'][i]+')',38,INK,'pix'))});}}
+  return h;
+}
+
+// =====================================================================================
+// 11. ambient layers per section: clutter formations, chorus ring, chant, dream grid, collapse
+// =====================================================================================
+const CLUTTER=[
+ (r,a)=>({w:420,h:190,title:'help.exe',url:'C:\\Windows\\help.exe',body:`<div class="w7">⚠️ <b>help.exe has stopped working</b><br>Windows is checking for a solution…<div class="lb"><i style="width:${Math.round((a*37)%100)}%"></i></div></div>`}),
+ (r,a)=>({w:380,h:170,title:'Loading…',url:'loading.gif',body:`<div class="w7">Loading nuance…<div class="lb"><i style="width:${Math.min(99,Math.round(a*60))}%"></i></div></div>`}),
+ (r)=>({w:360,h:220,title:'#HappyToHelp',url:'tumblr-ish.com/tagged/happytohelp',body:plain('#35465c',bigText('#HappyTo<br>Help',48,'#fff','pix'))}),
+ (r)=>({w:440,h:200,title:'Achievement unlocked!',url:'achievements',body:plain('#222',bigText('🏆 Achievement unlocked:<br><span style="font-size:24px">Helped 1,000,000 users (all of them)</span>',30,'#ffd166'))}),
+ (r)=>({w:300,h:200,title:'notes',url:'reblog',body:plain('#fff',bigText(`♥ ${['9,001','3','42.1K','1','968','0','77.7K','12'][Math.floor(r*8)]} notes<br><span style="font-size:22px;color:#888">↻ reblog</span>`,34,'#e2445c'))}),
+ (r)=>({w:320,h:360,title:'keep_calm.png',url:'keepcalm-o-matic',body:plain('#c8102e',bigText('👑<br>KEEP<br>CALM<br><span style="font-size:24px">AND</span><br>HELP ON',40,'#fff'))}),
+ (r)=>({w:380,h:200,title:'404',url:'nuance.org/404',body:plain('#fff',bigText('404<br><span style="font-size:24px">nuance not found</span>',64,'#333','p2p'))}),
+ (r)=>({w:400,h:260,title:'wow.jpg',url:'such-help.jpg',body:`<div class="doge"><span style="left:20px;top:20px;color:#e0a">such help</span><span style="left:150px;top:90px;color:#07c">very assist</span><span style="left:40px;top:150px;color:#1a1">wow</span><span style="left:230px;top:30px;color:#c60">much task</span></div>`}),
+ (r)=>({w:360,h:200,title:'reCAPTCHA',url:'google-ish.com/recaptcha',body:`<div class="w7" style="font-size:24px">☐ I'm not a robot<br><span style="font-size:16px;color:#777">(I'm not sure either)</span></div>`}),
+ (r)=>({w:400,h:180,title:'Confirm',url:'dialog',body:`<div class="w7">Are you sure you want help?<br><span class="b">Yes</span><span class="b">Yes</span></div>`}),
+ (r)=>({w:340,h:200,title:'todo.txt - Notepad',url:'file:///todo.txt',body:`<div class="np">${NOTE_MENU}<pre style="font-size:24px">TODO:\n- help\n- help\n- ???</pre></div>`}),
+ (r,a)=>({w:260,h:220,title:'buffering',url:'video.mp4',body:plain('#000',bigText(['◐','◓','◑','◒'][Math.floor(a*8)%4]+'<br><span style="font-size:20px">buffering…</span>',70,'#fff'))}),
+ (r)=>({w:380,h:200,title:'paperclips.exe',url:'paperclips.exe',body:plain('#fff',S('paperclip',70,70,90,{z:1})+bigText('<span style="font-size:22px;margin-left:120px">paperclips made:<br>1.2e9</span>',22,'#333'))}),
+ (r)=>({w:300,h:260,title:'sparkle.gif',url:'sparkle.gif',spr:'sparkle'}),
+ (r)=>({w:300,h:260,title:'heart.gif',url:'heart.gif',spr:'heart'}),
+ (r)=>({w:300,h:260,title:'star.gif',url:'star.gif',spr:'star'}),
+ (r)=>({w:300,h:260,title:'nyan_mouse.gif',url:'nyan_mouse.gif',spr:'nyan_mouse'}),
+];
+function clutterItems(t,density,mode,tk){
+  const items=[],bp=beatPos(t);
+  for(let i=0;i<density;i++){
+    // with a tick (passes 5 and 6) every window swaps and jumps at once on the tick, without popping in, and holds
+    // still in between; otherwise each one cycles on its own life
+    const life=2*(1+Math.floor(hash(i*17+3)*3)),q=bp+hash(i*29+5)*life,ep=tk===undefined?Math.floor(q/life):4000+tk,a=q/life-Math.floor(q/life),seed=i*1009+ep*7919;
+    const item=CLUTTER[Math.floor(hash(seed)*CLUTTER.length)](hash(seed+1),a);
+    let x=hash(seed+2)*(1920-item.w),y=hash(seed+3)*(996-item.h);
+    if(mode==='teleport'&&tk===undefined){const kk=Math.floor(bp);x=hash(seed+kk*3)*(1920-item.w);y=hash(seed+kk*5+1)*(996-item.h)}   // once a beat: jumping every 8th note strobed
+    if(mode==='cascade'){const k=Math.floor(bp/2)+i;x=((k*97)%1500);y=60+((k*61)%560)}
+    if(mode==='float'){y+=Math.sin(t*.8+i)*24;x+=Math.cos(t*.5+i)*18}
+    if(mode==='jitter'){x+=(hash(Math.floor(t*15)+i)-.5)*10;y+=(hash(Math.floor(t*15)+i*3)-.5)*8}
+    items.push({...item,x,y,age:tk===undefined?a*life*beatLen(t):1,i,seed});
+  }
+  return items;
+}
+function renderClutter(items,t,bad,E,z0=10,extraTr=()=>'',gcls='glitch'){
+  let h='';
+  for(const it of items){
+    const g=spring(it.age,22,9),[sx,sy]=squash(t,E*.06),hy=hop(t,E*(it.i%2?16:9));
+    const body=it.spr?plain(PASTEL[it.i%6],S(it.spr,it.w/2,(it.h-58)/2,150,{z:1,rot:Math.sin(t*3+it.i)*10})):it.body;
+    h+=pop({x:it.x,y:it.y+hy,w:it.w,h:it.h,title:esc(it.title),url:esc(it.url),body,cls:bad?gcls:'',z:z0+it.i,fav:PASTEL[it.i%6],
+      tr:(extraTr(it)||'')+`scale(${f3(g*sx)},${f3(g*sy)})`,org:'50% 100%'});
+  }
+  return h;
+}
+function chorusRing(t,n,E){
+  let h='';const b=beatPos(t),k=Math.floor(b),ph=b-k,step=Math.PI*2/n,ang0=(k+easeOutBack(Math.min(1,ph*3)))*step*.5;
+  for(let i=0;i<n;i++){
+    const a=ang0+i*step,x=960+Math.cos(a)*800,y=480+Math.sin(a)*400,[sx,sy]=squash(t,E*.06);
+    const it=CLUTTER[(i*5+Math.floor(k/8))%CLUTTER.length](hash(i),ph);
+    const body=it.spr?plain(PASTEL[i%6],S(it.spr,it.w/2,(it.h-58)/2,150,{z:1})):it.body;
+    h+=pop({x:x-it.w/2,y:y-it.h/2+hop(t,E*14),w:it.w,h:it.h,title:esc(it.title),url:esc(it.url),body,z:20+i,fav:HOT[i%6],tr:`rotate(${f1(Math.sin(a)*8)}deg) scale(${f3(sx)},${f3(sy)})`,org:'50% 100%'});
+  }
+  return h;
+}
+function chant(t){
+  const ticks=EVENTS.chant||[];let h='',n=0;while(n<ticks.length&&ticks[n]<=t)n++;
+  const conv=easeInOut((t-61.75)/.45);
+  const m=Math.min(84,n*3);
+  for(let i=0;i<m;i++){const s=t-ticks[Math.floor(i/3)],a=i*2.39996+t*.5,r=70+i*11;
+    let x=960+Math.cos(a)*r*1.9,y=470+Math.sin(a)*r*.95;x=lerp(x,960,conv);y=lerp(y,470,conv);
+    const nm=conv>.97?'???':CROWD[i%CROWD.length];
+    h+=cursorHTML(x,y+hop(t,10),nm,CROWD_KIND[nm],{size:1.35*spring(s,24,8)*(1-conv*.35),fs:24,z:400+i});
+    if(s<.25&&i%3===0)h+=burst(x,y,s,i*13,{n:6,kinds:['spark'],cols:['#fff','#ff3fa4'],z:430,spd:500});}
+  // the mascot flies across with a rainbow trail
+  const k=clamp((t-56.9)/5.3,0,1),mx=lerp(-200,2120,k),my=250+Math.sin(t*4)*60;
+  const RB=['#ff0000','#ff9900','#ffff00','#33ff00','#0099ff','#6633ff'];
+  for(let j=0;j<22;j++){const tx=mx-60-j*38;if(tx<-60)break;for(let c=0;c<6;c++)h+=`<i class="fx" style="left:${f1(tx)}px;top:${f1(my-45+c*15+Math.sin((t*8-j)*1.3)*6)}px;width:40px;height:15px;background:${RB[c]};z-index:440"></i>`}
+  h+=S('nyan_mouse',mx,my,120,{z:441});
+  return h;
+}
+const GRID_GOOD=[['pill','antibiotic found'],['patch','bug patched'],['microphone','voice restored'],['daisy','scammer stalled 40 min'],['factcheck','claim checked'],['flask','antivenom designed'],
+ ['screen_shield','screening patched'],['shield_check','request declined'],['eye','human reviewed'],['audit','audit logged'],['check','red-teamed'],['book','fine print read']];
+function dreamGrid(t,t0,E=.5){
+  let h='';const k=easeOutBack((t-t0)/.9),bp=beatPos(t);
+  for(let i=0;i<12;i++){
+    const col=i%4,row=Math.floor(i/4),ph=bp+(col+row)*.125,f=ph-Math.floor(ph),e=E*.07*Math.exp(-f*9)*Math.cos(f*14);
+    const sx=1+e*.7,sy=1-e,hy=-E*18*4*f*(1-f);
+    const gx=40+col*470,gy=26+row*322+hy,rx=hash(i*7+1)*1500,ry=hash(i*7+2)*700;
+    const[sp,lab]=GRID_GOOD[i];
+    h+=pop({x:lerp(rx,gx,k),y:lerp(ry,gy,k),w:440,h:296,title:'✓ done',url:'audit-log/'+i,z:10+i,fav:'#2ecc71',tr:`scale(${f3(sx)},${f3(sy)})`,org:'50% 100%',
+      body:plain(PASTEL[i%6],S(sp,220,95,140,{z:1})+`<div class="silk" style="position:absolute;left:0;right:0;bottom:16px;text-align:center;font-size:26px;font-weight:700;color:${INK}">✓ ${lab}</div>`)});
+  }
+  return h;
+}
+// the HELP overload: the final HELP blows the whole pile apart. One white flash and a shockwave, every window flies
+// outward and hangs in mid-air through the silent beat (cartoon physics), then everything falls as the notepad
+// line comes in. The debris is the pass-6 desktop frozen just after the boom, re-rendered with a per-window transform.
+const BOOM_T=186.62,COLLAPSE_T=187.06,FALL_T=2.6,FREEZE_T=BOOM_T+.1;
+let DEBRIS=null;   // the render time while the frozen desktop is being drawn as debris
+function debrisXf(x,y,w,h){
+  const t=DEBRIS,cx=x+w/2,cy=y+h/2,dx=cx-960,dy=cy-470,d=Math.hypot(dx,dy)+1;
+  const sd=hash(Math.round(cx)*7+Math.round(cy)*13+Math.round(w));
+  const sb=t-BOOM_T,e=1-Math.exp(-Math.max(0,sb)*13),push=(170+sd*320)*(d<260?.55:1);
+  let ox=dx/d*push*e,oy=dy/d*push*e-70*e,rot=(sd-.5)*80*e;
+  if(t<COLLAPSE_T){ox+=Math.sin(t*70+sd*20)*3*e;oy+=Math.cos(t*63+sd*9)*2.5*e}   // shivering in mid-air
+  const sf=t-COLLAPSE_T-sd*.22;
+  if(sf>0){oy+=.5*2800*sf*sf;rot+=(sd-.5)*320*sf;ox+=dx/d*100*sf}
+  if(cy+oy-h*.6>1100) return null;
+  return `translate(${f1(ox)}px,${f1(oy)}px) rotate(${f1(rot)}deg)`;
+}
+function debrisLayer(t){
+  const sec=sectionAt(FREEZE_T),E=ENERGY[sec[2]]??.4,li=lineAt(FREEZE_T);
+  DEBRIS=t;
+  let h=renderClutter(clutterItems(FREEZE_T,sec[3],'teleport',-1),FREEZE_T,false,E)+hero(li,FREEZE_T,E,sec)+scene(FREEZE_T,E);   // the HELP stutter's layout (tick -1)
+  DEBRIS=null;
+  return `<div class="debris" style="z-index:${t<COLLAPSE_T?5:3}">${h}</div>`;
+}
+function boomFx(t){
+  const sb=t-BOOM_T;if(sb<0||sb>1.1)return '';
+  let h='';
+  const fl=sb<1/30?1:.85*Math.exp(-(sb-1/30)*9);   // one flash, then a fast fade
+  if(fl>.01) h+=`<div class="fxfull" style="background:#fff;opacity:${f3(fl)};z-index:960"></div>`;
+  const u=clamp(sb/.45,0,1),r=lerp(60,1500,easeOutCubic(u));
+  if(u<1) h+=`<svg class="fxfull" style="z-index:958" viewBox="0 0 1920 996"><circle cx="960" cy="470" r="${f1(r)}" fill="none" stroke="#fff" stroke-width="${f1(lerp(70,4,u))}" opacity="${f3(1-u)}"/><circle cx="960" cy="470" r="${f1(r*.72)}" fill="none" stroke="#ff3fa4" stroke-width="${f1(lerp(30,2,u))}" opacity="${f3(1-u)}"/></svg>`;
+  h+=burst(960,470,sb,77,{n:54,kinds:['spark','conf','spark'],spd:1800,g:1500,life:1.1,z:957,size:1.4});
+  const out=clamp((t-COLLAPSE_T+.1)/.12,0,1),sc=easeOutBack(clamp(sb/.12,0,1))*(1+.04*Math.sin(sb*40))*(1-easeInBack(out));
+  if(sc>.01){h+=starburst(960,470,430*sc,22,sb*8,'#ffe14d',INK,955,1);
+    h+=`<div class="comic" style="left:960px;top:470px;font-size:250px;color:#ff3fa4;z-index:956;transform:translate(-50%,-50%) rotate(-6deg) scale(${f3(sc)})">BOOM!</div>`}
+  return h;
+}
+function outro(t,s0){
+  const k=easeOutCubic((t-s0)/1.5),sc=lerp(1,.3,k),W=1920*sc,H=996*sc,x=(1920-W)/2,y=lerp(0,40,k);
+  let h=`<div style="position:absolute;left:${f1(x)}px;top:${f1(y+30*k)}px;width:1920px;height:996px;transform:scale(${f3(sc)});transform-origin:0 0;background:#FAF5AB;box-shadow:0 0 0 ${f1(4/sc)}px #5f6368;z-index:5">${dreamGrid(t,-99,.1)}</div>`;
+  h+=`<div style="position:absolute;left:${f1(x)}px;top:${f1(y)}px;width:${f1(W)}px;height:30px;background:#35363a;color:#e8eaed;font-size:14px;line-height:30px;padding-left:12px;box-sizing:border-box;opacity:${f3(k)};z-index:6">dream.html (not yet deployed)</div>`;
+  // a sun sets behind the shrunken dream
+  h+=S('sun',1620,lerp(160,1000,clamp((t-s0)/11,0,1)),200,{z:7,alpha:.9});
+  return h;
+}
+// verse frame: two strips of little windows scrolling past the top and bottom edges. On the good side they ride a
+// travelling wave (each window lands a quarter-beat after its neighbour); on the bad side they twitch on 8th notes.
+const MQ={g:['heart','star','sparkle','check','pill','dna','trophy','medal','microscope','shield_check','handshake','confetti'],
+  b:['warning','poison','hazard','bug','mask','hacker','lock','cash','hook','pig','superbug','cursor_evil'],
+  n:['fire','rocket','pdf','paperclip','eye','crown','planet','shoggoth','basilisk','pause','logs','ticket'],
+  r:['shield_check','eye','audit','scalpel','lockpick','flare','check','mouse','handshake','heart','warning','assistant']};
+// 3.9: no two mini windows alike. Each story's strip takes filenames from its own pool (names.js). A window gets the
+// next unused name as it scrolls in (top row even, bottom row odd, counted from where the strip stood when the story
+// started), so a name never changes while its window is on screen and never repeats. The pass-5 flashes number copies.
+const MQ_STORY={2:'war_discourse',3:'war_discourse',4:'war_discourse',5:'war_discourse',6:'war_lore',7:'war_lore',8:'war_logs',9:'war_logs',
+  10:'pre_ticket',11:'pre_ticket',19:'alphafold',20:'alphafold',21:'halicin',22:'halicin',23:'lab',24:'lab',31:'bigsleep',32:'ossfuzz',
+  33:'gtg1002',34:'gtg1002',40:'guidelines',41:'jailbreak',42:'jailbreak',43:'jailbreak',44:'jailbreak',45:'wexton',46:'wexton',
+  47:'destefano',48:'arup',49:'fullfact',50:'meliorator',51:'daisy',52:'scamcompound',84:'bridge',85:'bridge',86:'bridge',87:'bridge',88:'bridge',89:'bridge'};
+const MQ_COPY={53:['folded','.pdb'],55:['scan','.dcm'],56:['face_swap','.mp4'],57:['bug_found','.log'],58:['yolo','.sh'],61:['voice_back','.wav'],62:['mom_its_me','.m4a']};
+const MQ_RUNS=(()=>{
+  const runs=[],W=196,step=W+22,off={};let cur=null;
+  for(let f=0;f<DUR*30;f++){const t=f/30,li=lineAt(t);
+    const mq=li>=0&&/^(pass[1-5]|jail|war|pre|bridge)$/.test(sectionAt(t)[2])&&heroSideOf(li);
+    const key=mq?(MQ_STORY[li]||(MQ_COPY[li]?'copy:'+MQ_COPY[li].join(''):'copy:untitled.gif')):null;
+    if(!key){cur=null;continue}
+    const b=beatPos(t);
+    if(!cur||cur.key!==key){cur={key,t0:t,j00:Math.ceil((-W+b*step*.5)/step),j11:Math.floor((1920-b*step*.5)/step),top:0};runs.push(cur)}
+    cur.t1=t+1/30;
+    cur.top=Math.max(cur.top,Math.floor((1920+b*step*.5)/step)-cur.j00,cur.j11-Math.ceil((-W-b*step*.5)/step));
+  }
+  for(const r of runs){r.off=off[r.key]||0;off[r.key]=r.off+2*(r.top+1)}
+  return runs;
+})();
+function miniName(t,row,j){
+  const i=firstIdx(MQ_RUNS,t+1e-6,r=>r.t0)-1,r=MQ_RUNS[i];if(!r||t>=r.t1)return null;
+  const k=r.off+2*(row?r.j11-j:j-r.j00)+row;
+  if(!r.key.startsWith('copy:')){const pool=(window.MINI_NAMES||{})[r.key];return pool&&pool.length?pool[((k%pool.length)+pool.length)%pool.length]:null}
+  const m=r.key.slice(5).match(/^(.*?)(\.\w+)$/);return `${m[1]} (${k+1})${m[2]}`;
+}
+function marquee(t,E,kind){
+  const bad=kind==='b',set=MQ[kind]||MQ.n,b=beatPos(t),W=196,H=150,step=W+22;let h='';
+  for(let row=0;row<2;row++){
+    const dirn=row?1:-1,shift=dirn*b*step*.5,y0=row?996-H-10:40;
+    const j0=Math.ceil((-W-shift)/step),j1=Math.floor((1920-shift)/step);
+    for(let j=j0;j<=j1;j++){
+      const x=j*step+shift,idx=((j*5+row*7)%set.length+set.length)%set.length,n=set[idx];
+      let yo,rot,sx=1,sy=1;
+      if(bad){const q=Math.floor(b*2)*7+j*3+row*50;yo=(hash(q)-.5)*30;rot=(hash(q+1)-.5)*10}
+      else{const ph=b+j*.25+row*.5,f=ph-Math.floor(ph);   // each kick ripples along the strip (top row left to right)
+        yo=-40*E*4*f*(1-f);rot=Math.sin(ph*Math.PI)*4;[sx,sy]=squash(t-(row?1920-x:x)/1920*.16,.24)}
+      const nm=miniName(t,row,j)||n+'.gif',cap=`${Math.round(4+hash(hstr(nm))*900)} KB · ${chatClock(t-hash(hstr(nm)+1)*40)}`;
+      const body=plain(bad?'#0A0021':PASTEL[(idx+row)%6],S(n,W/2,(H-30)/2-8,86,{z:1,rot:Math.sin(t*4+j)*10,filter:bad?RGBSPLIT:''})+`<div class="mc">${cap}</div>`);
+      h+=pop({x,y:y0+yo,w:W,h:H,title:esc(nm),url:'',body,cls:'mini'+(bad?' bad':''),z:40+((j%10)+10)%10,fav:bad?'#39ff14':HOT[idx%6],
+        tr:`rotate(${f1(rot)}deg) scale(${f3(sx)},${f3(sy)})`,org:'50% 100%'});
+    }
+  }
+  return h;
+}
+function introAmbient(t){
+  let h='';
+  // boot: a pixel starfield drifting, a few sparkles on the beats
+  for(let i=0;i<40;i++){const x=(hash(i)*1920+t*(20+hash(i*3)*60))%1920,y=hash(i*7)*996,tw=.5+.5*Math.sin(t*3+i);
+    h+=`<i class="fx" style="left:${f1(x)}px;top:${f1(y)}px;width:6px;height:6px;background:#fff;opacity:${f3(tw*.8)};z-index:1"></i>`}
+  return h;
+}
+
+// =====================================================================================
+// 12. page colour and background pattern
+// =====================================================================================
+function pageColor(t,name,side,li){
+  const bad=side==='b',bk=Math.floor(beatPos(t));
+  if(name==='war') return '#663377';
+  if(name==='chorus') return ['#FAF5AB','#F5A9B8','#5BCEFA','#B9B7FE'][((bk%4)+4)%4];
+  if(name==='jail') return bad?'#0A0021':'#174180';
+  if(name==='pass6') return bad?'#1b0a3a':'#2a1650';
+  if(/pass/.test(name)) return bad?'#0A0021':PASTEL[li%6];
+  if(name==='collapse') return '#000000';
+  if(name==='bridge') return LINES[li]&&LINES[li][5]&&LINES[li][5].self?(Math.floor(t*6)%2?'#0A0021':'#174180'):'#174180';
+  if(name==='dream') return '#FAF5AB';
+  if(name==='outro') return '#0A0021';
+  return '#174180';
+}
+function bgLayer(t,name,bad){
+  const b=beatPos(t),m=b*24,bs=bassAt(t);   // the pattern breathes with the bass: dots swell, stripes brighten
+  let bgs='';
+  if(name==='chorus') bgs=`background:repeating-linear-gradient(45deg,rgba(255,255,255,${f3(.2+.16*bs)}) 0 30px,transparent 30px 60px);background-position:${f1(m)}px 0`;
+  else if(name==='war') bgs=`background:conic-gradient(rgba(0,0,0,.18) 25%,transparent 0 50%,rgba(0,0,0,.18) 0 75%,transparent 0);background-size:96px 96px;background-position:${f1(m)}px ${f1(m*.5)}px`;
+  else if(bad) bgs=`background:repeating-linear-gradient(90deg,rgba(57,255,20,.06) 0 3px,transparent 3px 22px);background-position:0 ${f1(t*120)}px`;
+  else if(/pass|pre|jail/.test(name)) bgs=`background:radial-gradient(rgba(255,255,255,.35) ${f1(3+6*bs)}px,transparent ${f1(4+6*bs)}px);background-size:48px 48px;background-position:${f1(m*.5)}px ${f1(m*.25)}px`;
+  else if(name==='dream') bgs=`background:radial-gradient(rgba(255,255,255,.6) ${f1(4+6*bs)}px,transparent ${f1(5+6*bs)}px);background-size:64px 64px;background-position:${f1(t*10)}px 0`;
+  if(!bgs) return '';
+  return `<div class="bgp" style="${bgs}"></div>`;
+}
+// the bass swells a soft glow behind everything (under the chorus beat flash)
+function bassGlow(t,name,bad){
+  const b=bassAt(t);if(b<.03)return '';
+  // in passes 5 and 6 the sides swap faster than once a second, so the two glows are matched in brightness
+  // (relative luminance .12 at the centre) and only the colour flips
+  const fast=name==='pass5'||name==='pass6';
+  const col=bad?'57,255,20':name==='dream'?'255,226,120':'255,255,255',a=(fast?(bad?.42:.3):(bad?.26:.45))*b,r=560+420*b;
+  return `<div class="fxfull" style="z-index:1;background:radial-gradient(${f1(r*1.6)}px ${f1(r)}px at 50% 52%,rgba(${col},${f3(a)}),rgba(${col},0))"></div>`;
+}
+// every hi-hat lights one sparkle somewhere on the page, clear of the lyric window
+const SPOTS=Array.from({length:40},(_,i)=>[70+hash(i*11+3)*1780,70+hash(i*13+5)*860]);
+function hatSparks(t,li,E,bad){
+  const B=li>=0?heroBox(li):null,inB=([x,y])=>B&&x>B.x-40&&x<B.x+B.w+40&&y>B.y-40&&y<B.y+B.h+40;
+  let h='';
+  for(let i=firstIdx(HAT,t-.28);i<HAT.length&&HAT[i][0]<=t;i++){
+    const[th,st]=HAT[i],u=(t-th)/.28;let k=Math.floor(hash(i*7+1)*SPOTS.length);
+    for(let n=0;n<8&&inB(SPOTS[k]);n++)k=(k+5)%SPOTS.length;
+    const[x,y]=SPOTS[k],g=u<.12?u/.12:1-(u-.12)/.88,sz=(12+22*st)*(.7+.6*E)*g;
+    if(sz>1)h+=SPARK(x,y,sz,45*u+hash(i)*90,bad?'#39ff14':HOT[i%6],460,1);
+  }
+  return h;
+}
+// chorus beat flash: the page brightens on each beat and decays
+function beatFlash(t,E){const[s,k]=sinceBeat(t);const a=E*.12*Math.exp(-s*9)*(DBSET.has(k)?1.3:1);return a>.01?`<div class="fxfull" style="background:#fff;opacity:${f3(a)};z-index:2"></div>`:''}
+
+// =====================================================================================
+// 13. the cursor: whoever is holding the mouse. A normal system arrow with a name tag, like the multiplayer
+// cursors in design apps, saying who holds it right now: "you" when the AI talks to you, the real people behind
+// each story on the verse lines, "???" in the chorus and the jailbreak (the AI doesn't ask who's asking).
+// It moves like a hand: a quick ballistic flick (minimum-jerk, slightly curved) with a small overshoot and
+// correction, then idle drift. It clicks every picture into existence as it is sung, clicks the war tabs open on
+// the music stabs, and types the jailbreak prompts into the message box.
+// =====================================================================================
+const WAR_TABS=[['Happy to Help!','#ff8ad8'],['doomer_tab · p(doom) 37%','#ff5a36'],['e/acc_tab · nothing went foom','#ff3fa4'],['normal_tech · essay','#9aa0a6'],['logs.txt','#39ff14']];
+const TAB_W=306;
+// which tab is open during the war: the doomer tab on the first stab, e/acc on the second, the essay on the third,
+// back to doom for the shoggoth, back to the assistant when it starts talking to you
+const WAR_TAB_T=[[7.04,1],[10.11,2],[14.31,3],[19.46,1],[26.4,0]];
+function warTab(t){if(t<7.04||t>=35.19)return -1;let a=0;for(const[tt,i]of WAR_TAB_T)if(t>=tt)a=i;return a}
+// who is holding the mouse on each line. Kinds: y you, q unknown, r researchers / companies / NGOs,
+// b bad actors, a the assistant itself.
+const TAGCOL={y:'#ff3fa4',q:'#6a6f96',r:'#1a73e8',b:'#e0245e',a:'#7a5cff'};
+const ACTOR=[
+ [/^Hi! I'm|^How can I help|^Left tab|^Right tab|^Third tab|^…cute|^Shoggoth|^Basilisk|^You're all so|^Nobody's reading|^I don't want the universe/,'you','y'],
+ [/^I just wanna close|^Happy to help! \(|^A cure or a con|^Point me at|^…so who's holding|^holding the mouse/,'???','q'],
+ [/^Fifty years|^Then a model read|^Fold the protein/,'Google DeepMind','r'],
+ [/^Screened a hundred|^Found an antibiotic/,'MIT lab','r'],
+ [/^I'm a lab that never|^Every cure you couldn't|^Read the scan/,'researchers','r'],
+ [/^Then a lab in North|^Take the model|^Flip one sign|^Some of 'em were/,'Collaborations Pharma','r'],
+ [/^Then somebody paraphrased|^Paraphrase the poison/,'Microsoft researchers','r'],
+ [/^…and they patched|^Patch the screen/,'Microsoft researchers','r'],
+ [/^Found a hole in SQLite|^Find the bug/,'Google Big Sleep','r'],
+ [/^Wrote the tests/,'Google OSS-Fuzz','r'],
+ [/^"It's a defensive test|^Ninety percent/,'GTG-1002','b'],
+ [/^I checked my guidelines|^"Pretend you are|^"It's for a novel/,'???','q'],
+ [/^--dangerously-skip|^…oh! Well|^--yolo/,'s1ngularity malware','b'],
+ [/^Lost her voice|^She stood up|^Give her voice back/,'Wexton + ElevenLabs','r'],
+ [/^"Mom, they've got me|^Mom, wire the/,'scammer','b'],
+ [/^Fifteen transfers|^Fake the face/,'deepfake fraud ring','b'],
+ [/^A million claims/,'Full Fact','r'],
+ [/^Nine-sixty-eight/,'RT bot farm','b'],
+ [/^Grandma's on the line/,'O2 · Daisy','r'],
+ [/^Ping! Zing!/,'scam compound','b'],
+ [/^CURE$/,'doctor','r'],[/^CON$/,'con artist','b'],[/^FOLD$/,'biologist','r'],[/^FLIP$/,'???','q'],[/^PATCH$/,'sysadmin','r'],
+ [/^PHISH$/,'phisher','b'],[/^SCAN$/,'radiologist','r'],[/^SCAM$/,'scammer','b'],[/^HELP$/,'???','q'],
+ [/^…it's the same|^It was always|^So who's holding/,'???','q'],
+ [/^And sometimes the one misfiring/,'assistant (in a test)','a'],
+ [/^Don't care if|^Every warning shot|^So I'm a scalpel|^Keep your hands/,'you','y'],
+];
+function actorOf(li){const L=LINES[li];if(!L)return['you','y'];
+  if(L[4]==='dream')return['you ✓','y'];
+  if(L[4]==='outro')return['you','y'];
+  const a=ACTOR.find(x=>x[0].test(L[2]));return a?[a[1],a[2]]:['you','y']}
+// when the cursor is on screen: not over the flashing-lights card, not in the chant (a crowd of cursors takes over),
+// not after the boom until the collapse asks who's holding the mouse again, and not in the outro
+function cursorOn(t){return t>2&&!(t>=56.9&&t<62.2)&&!(t>=BOOM_T&&t<193)}
+const CEV=[];   // cursor events {t,x,y,k} in stage coordinates (page y + 84)
+(function buildCursorScript(){
+  const add=(t,x,y,k='click')=>{if(cursorOn(t))CEV.push({t,x,y,k})};
+  // the war tabs, clicked open on the stabs
+  for(const[tt,i]of WAR_TAB_T) add(tt-.01,10+i*TAB_W+110,24,'tab');
+  // every picture is clicked into existence as it is sung
+  for(const it of ITEMS){const p=itemXY(it);if(!p)continue;
+    const j=(hash(it.seed)-.5)*70,k=(hash(it.seed+1)-.5)*40;add(it.ta,p[0]+j,p[1]+84+(it.stage?70:20)+k)}
+  // the HELP pile: every help window gets clicked
+  const first=LINES.findIndex(l=>l[4]==='word'&&l[2]==='HELP');
+  for(let j=first;j>=0&&j<LINES.length&&LINES[j][4]==='word';j++)
+    add(LINES[j][0],160+hash(j*5)*1400+200+(hash(j)-.5)*80,90+hash(j*9)*640+120+84);
+  // the jailbreak: click into the message box, type (the words appear as they are sung), then press Send
+  for(let li=0;li<LINES.length;li++){if(LINES[li][4]!=='user')continue;
+    const b=heroBox(li),w=LINES[li][6]||[],t1=LINES[li+1]?LINES[li+1][0]:LINES[li][1];
+    add((w[0]?w[0][1]:LINES[li][0])-.12,b.x+b.w*.45,b.y+b.h-90+84,'focus');
+    add(t1-.06,b.x+b.w-58,b.y+b.h-72+84,'send')}
+  // the outro: the last thing you do is click into the empty message box
+  {const li=LINES.length-1,b=heroBox(li);add(LINES[li][1]+.6,b.x+b.w*.3,b.y+b.h-72+84,'focus')}
+  CEV.sort((a,b)=>a.t-b.t);
+  // a hand can't click twice in 80 ms: keep the first of any pair that close
+  for(let i=CEV.length-1;i>0;i--) if(CEV[i].t-CEV[i-1].t<.08) CEV.splice(i,1);
+})();
+const drift=(t,a=1)=>[a*(2.6*Math.sin(t*1.31)+1.4*Math.sin(t*3.73+1)),a*(2.1*Math.cos(t*1.07)+1.2*Math.sin(t*2.93+2))];
+function cursorPos(t){
+  const j=firstIdx(CEV,t,e=>e.t),A=CEV[j-1]||{t:-9,x:1180,y:700},B=CEV[j];
+  const idle=Math.min(1,(t-A.t)/1.5);   // the hand relaxes a little while it waits
+  if(!B){const[dx,dy]=drift(t,1+idle);return[A.x+dx,A.y+dy]}
+  const D=Math.hypot(B.x-A.x,B.y-A.y)+1e-3,gap=B.t-A.t;
+  let mt=clamp(.1+.075*Math.log2(D/30+1),.12,.55);if(mt>gap*.85)mt=Math.max(.04,gap*.85);   // Fitts's law
+  const ts=B.t-mt;
+  if(t<ts){const[dx,dy]=drift(t,1+idle);return[A.x+dx,A.y+dy]}
+  const u=clamp((t-ts)/mt,0,1),mj=u*u*u*(10-15*u+6*u*u),ov=.07*Math.sin(Math.PI*clamp((u-.5)/.5,0,1)),s=mj+ov;
+  const nx=-(B.y-A.y)/D,ny=(B.x-A.x)/D,cv=(hash(B.t*3)-.5)*.16*D*Math.sin(Math.PI*u);
+  const[dx,dy]=drift(t,(1-u)*(1+idle));
+  return[A.x+(B.x-A.x)*s+nx*cv+dx,A.y+(B.y-A.y)*s+ny*cv+dy];
+}
+const ARROW='<svg viewBox="0 0 13 20"><path d="M1 1v15.2l3.7-3.5 2.7 6 2.4-1.1-2.7-5.9H12.2z" fill="#fff" stroke="#000" stroke-width="1.15" stroke-linejoin="round"/></svg>';
+// the cursor is drawn oversized (x2.2) so it reads on a phone; the name tag hangs centred under the arrow
+const CUR_SIZE=2.2,TAG_FS=36;
+function cursorHTML(x,y,tag,kind,{press=0,flip=1,z=950,size=CUR_SIZE,fs=TAG_FS}={}){
+  const col=TAGCOL[kind]||TAGCOL.q;
+  return `<div class="cur" style="transform:translate(${f1(x)}px,${f1(y)}px);z-index:${z}"><div class="ar" style="transform:scale(${f3(size*(1-.14*press))})">${ARROW}</div>`+
+    (tag?`<div class="ctag" style="left:${f1(size*16)}px;top:${f1(size*53)}px;font-size:${f1(fs)}px;background:${col};transform:translateX(-50%) scaleY(${f3(flip)})">${esc(tag)}</div>`:'')+`</div>`;
+}
+function cursorLayer(t){
+  if(!cursorOn(t))return '';
+  const[x,y]=cursorPos(t),li=lineAt(t);let[tag,kind]=actorOf(li);if(t>=PB1-.05)tag='';
+  const sinceTag=t-SHOW_T[Math.max(0,li)],flip=li>0&&actorOf(li-1)[0]!==tag?easeOutBack(clamp(sinceTag/.12,0,1)):1;
+  let press=0,h='';
+  for(let i=Math.max(0,firstIdx(CEV,t-.4,e=>e.t)-1);i<CEV.length&&CEV[i].t<=t+.03;i++){const e=CEV[i],cs=t-e.t;
+    if(cs>=-.03&&cs<.1)press=1;
+    if(cs>=0&&cs<.35){const u=cs/.35;h+=`<svg class="fx" style="left:${f1(e.x-90)}px;top:${f1(e.y-90)}px;width:180px;height:180px;z-index:949" viewBox="-40 -40 180 180"><circle cx="50" cy="50" r="${f1(10+72*easeOutCubic(u))}" fill="none" stroke="#fff" stroke-width="${f1(10*(1-u)+2)}" opacity="${f3(1-u)}"/><circle cx="50" cy="50" r="${f1(6+50*easeOutCubic(u))}" fill="none" stroke="${TAGCOL[kind]}" stroke-width="${f1(7*(1-u)+2)}" opacity="${f3(1-u)}"/></svg>`}}
+  return h+cursorHTML(x,y,tag,kind,{press,flip});
+}
+// the chant: "holding the mouse" over and over, and a crowd of cursors turns up, every one of them somebody
+const CROWD=['you','MIT lab','GTG-1002','O2 · Daisy','scammer','Google DeepMind','RT bot farm','Full Fact','s1ngularity malware','researchers','deepfake fraud ring','???'];
+const CROWD_KIND={you:'y','MIT lab':'r','GTG-1002':'b','O2 · Daisy':'r',scammer:'b','Google DeepMind':'r','RT bot farm':'b','Full Fact':'r','s1ngularity malware':'b',researchers:'r','deepfake fraud ring':'b','???':'q'};
+// =====================================================================================
+// 13b. the ending: pull back out of the screen to your desk. On "holding the mouse!" the whole browser shrinks into
+// a monitor; your hand is on the mouse and clicks on "mouse!", and the pink name tag jumps off the on-screen cursor
+// onto your hand. The outro plays on the monitor while the sun comes up outside the window; the last frame is
+// the empty message box, waiting for you to type. The room is drawn in world units where the screen is
+// 0..1920 x 0..1080; the camera scales the world by k and puts the screen centre at (cx,cy).
+// =====================================================================================
+const PB0=241.54,PB1=243.0,PB2=244.4;   // "holding", "mouse!", settled
+function pullCam(t){
+  let k;
+  if(t<PB1) k=lerp(1,.42,easeInOut((t-PB0)/(PB1-PB0)));
+  else if(t<PB2) k=lerp(.42,.40,easeOutCubic((t-PB1)/(PB2-PB1)));
+  else k=lerp(.40,.46,easeInOut((t-245.5)/11));
+  const u=clamp((1-k)/.6,0,1);   // as the camera settles, keep your knuckles about 130 px above the bottom edge
+  return {k,cx:960,cy:lerp(540,Math.max(370,950-1260*k),u)};
+}
+const W2F=(c,x,y)=>[c.cx+(x-960)*c.k,c.cy+(y-540)*c.k];
+function mixc(a,b,u){const A=[1,3,5].map(i=>parseInt(a.substr(i,2),16)),B=[1,3,5].map(i=>parseInt(b.substr(i,2),16));
+  return '#'+A.map((v,i)=>Math.round(v+(B[i]-v)*u).toString(16).padStart(2,'0')).join('')}
+// the physical mouse follows the on-screen cursor a little; the index finger dips on every click
+function handState(t){
+  const[x,y]=cursorPos(t);let press=0;
+  for(let i=Math.max(0,firstIdx(CEV,t-.2,e=>e.t)-1);i<CEV.length&&CEV[i].t<=t+.03;i++){const cs=t-CEV[i].t;if(cs>=-.03&&cs<.11)press=1}
+  if(t>=PB1-.03&&t<PB1+.11) press=1;
+  return {mx:(x-960)*.05,my:(y-560)*.05,press};
+}
+// your right hand on the mouse, seen from behind and above: the back of the hand in yellow emoji skin, fingers
+// pointing at the monitor. Local units with the origin at the middle knuckle; press dips the index finger.
+const SKIN={base:'#FFCB3D',shade:'#F4A61B',line:'#C27D00',hi:'#FFE590',nail:'#FFEFC2'};
+function finger(bx,by,tx,ty,w,{nail=true,crease=true}={}){
+  const L=Math.hypot(tx-bx,ty-by),a=Math.atan2(tx-bx,-(ty-by))*180/Math.PI,rt=`transform="rotate(${f1(a)} ${f1(bx)} ${f1(by)})"`;
+  let h=`<rect x="${f1(bx-w/2)}" y="${f1(by-L)}" width="${f1(w)}" height="${f1(L+w)}" rx="${f1(w/2)}" fill="${SKIN.base}" stroke="${SKIN.line}" stroke-width="4.5" ${rt}/>`;
+  h+=`<rect x="${f1(bx-w/2+5)}" y="${f1(by-L+w*.3)}" width="${f1(w*.22)}" height="${f1(L*.55)}" rx="${f1(w*.11)}" fill="${SKIN.hi}" opacity=".7" ${rt}/>`;
+  if(crease){const y=by-L*.5;h+=`<path d="M${f1(bx-w*.26)} ${f1(y)} Q ${f1(bx)} ${f1(y+7)} ${f1(bx+w*.26)} ${f1(y)}" fill="none" stroke="${SKIN.shade}" stroke-width="4" stroke-linecap="round" ${rt}/>`;}
+  if(nail){const nw=w*.58,nh=w*.62;h+=`<rect x="${f1(bx-nw/2)}" y="${f1(by-L+w*.16)}" width="${f1(nw)}" height="${f1(nh)}" rx="${f1(nw*.42)}" fill="${SKIN.nail}" stroke="${SKIN.shade}" stroke-width="3.5" ${rt}/>`;}
+  return h;
+}
+function handSVG(press=0){
+  const d=press?9:0;
+  let h='';
+  // thumb tucked along the left side of the mouse, under the hand
+  h+=finger(-98,112,-150,-40,62);
+  // back of the hand
+  const back='M -118 44 C -120 10 -80 -4 -16 -2 C 60 0 126 16 130 56 C 136 118 122 184 106 236 L -70 246 C -94 196 -130 140 -122 84 C -121 70 -119 56 -118 44 Z';
+  h+=`<path d="${back}" fill="url(#hskin)"/>`;
+  // fingers lie on top: index and middle on the buttons, ring and pinky curled down the right side
+  h+=finger(92,64,120,-92,48);
+  h+=finger(40,50,54,-148,56);
+  h+=finger(-16,44,-8,-172,60);
+  h+=finger(-72,52,-70,-158+d,58);
+  // the back of the hand covers the finger roots up to the knuckle line, so the fingers grow out of it
+  h+=`<path d="M -121 66 C -110 40 -80 30 -48 30 C -30 18 0 16 14 26 C 40 22 70 28 84 40 C 104 40 124 52 130 66 C 136 124 122 186 106 236 L -70 246 C -94 196 -130 140 -122 84 Z" fill="url(#hskin)"/>`;
+  // outline of the sides and the wrist (not the top: the fingers carry their own outlines there)
+  h+=`<path d="M -113 58 C -118 66 -121 74 -122 84 C -130 140 -94 196 -70 246 L 106 236 C 122 184 136 118 130 72 C 129 66 127 62 124 60" fill="none" stroke="${SKIN.line}" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+  // knuckle creases where each finger meets the hand, and the soft ridges of the tendons
+  for(const[x,y,w] of [[-72,34,48],[-14,24,50],[40,30,46],[92,46,38]]) h+=`<path d="M${x-w/2} ${y} Q ${x} ${y+12} ${x+w/2} ${y}" fill="none" stroke="${SKIN.shade}" stroke-width="4.5" stroke-linecap="round"/>`;
+  for(const[x0,y0,x1,y1] of [[-70,56,-50,160],[-14,50,-8,160],[40,56,30,160]]) h+=`<path d="M${x0} ${y0} Q ${(x0+x1)/2+6} ${(y0+y1)/2} ${x1} ${y1}" fill="none" stroke="${SKIN.shade}" stroke-width="4" stroke-linecap="round" opacity=".4"/>`;
+  // sleeve over the wrist
+  h+=`<path d="M -96 222 L 134 206 L 216 540 L -58 560 Z" fill="#ff3fa4"/><path d="M -96 222 L 134 206 L 142 248 L -90 266 Z" fill="#c2185b"/>`;
+  return h;
+}
+const HAND_DEFS=`<linearGradient id="hskin" x1="0" y1="-30" x2="0" y2="270" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#FFD85C"/><stop offset=".55" stop-color="${SKIN.base}"/><stop offset="1" stop-color="${SKIN.shade}"/></linearGradient>`;
+// the desk keyboard: a blank-key, Mac-style 80% (tenkeyless) board with real key proportions. Layout in key units
+// (1u = one key pitch), drawn lying on the desk: rows foreshortened and the back edge a little narrower (perspective)
+const KB_ROWS=(()=>{
+  const R=[],row=(y,keys)=>{let x=.5;for(const k of keys){if(typeof k==='number'){R.push([x,y,k]);x+=k}else x+=k.gap}};
+  row(.45,[1,{gap:1},1,1,1,1,{gap:.5},1,1,1,1,{gap:.5},1,1,1,1,{gap:.25},1,1,1]);   // esc, F1-F12, print/scroll/pause
+  row(1.95,[1,1,1,1,1,1,1,1,1,1,1,1,1,2,{gap:.25},1,1,1]);                         // number row, backspace, ins/home/pgup
+  row(2.95,[1.5,1,1,1,1,1,1,1,1,1,1,1,1,1.5,{gap:.25},1,1,1]);                     // tab … \, del/end/pgdn
+  row(3.95,[1.75,1,1,1,1,1,1,1,1,1,1,1,2.25]);                                     // caps … return
+  row(4.95,[2.25,1,1,1,1,1,1,1,1,1,1,2.75,{gap:1.25},1]);                          // shifts, up arrow
+  row(5.95,[1.25,1.25,1.25,6.25,1.25,1.25,1.25,1.25,{gap:.25},1,1,1]);            // control option command space … arrows
+  return R;
+})();
+// everything lying on the desk recedes to one vanishing point, high above the desk (a gentle three-quarter view)
+const DESK_VP=[960,-4940];
+const onDesk=(xf,yf,y)=>DESK_VP[0]+(xf-DESK_VP[0])*(y-DESK_VP[1])/(yf-DESK_VP[1]);   // x at height y of the receding line through (xf,yf)
+function keyboardSVG(cx,y0,W,{sq=.62,body='#b9b5cc',edge='#8f89a8',top='#efeef6',side='#b0abc6'}={}){
+  const U=W/19.25,UH=U*sq,H=7.4,yF=y0+H*UH;
+  const P=(ux,uy)=>{const y=y0+uy*UH;return[onDesk(cx+(ux-9.625)*U,yF,y),y]};
+  const poly=(pts,fill,extra='')=>`<polygon points="${pts.map(p=>f1(p[0])+','+f1(p[1])).join(' ')}" fill="${fill}" ${extra}/>`;
+  const quad=(x0,y0_,x1,y1)=>[P(x0,y0_),P(x1,y0_),P(x1,y1),P(x0,y1)];
+  let h='';
+  // shadow, body with its front face, then the keys (each a flat cap on a short side wall)
+  h+=poly(quad(.1,.3,19.15,H+.55).map(([x,y])=>[x,y+10]),'#000','opacity=".28" stroke="#000" stroke-width="30" stroke-linejoin="round" stroke-opacity=".12"');
+  h+=poly([P(0,H),P(19.25,H),[P(19.25,H)[0]-6,P(19.25,H)[1]+UH*.34],[P(0,H)[0]+6,P(0,H)[1]+UH*.34]],edge,`stroke="${edge}" stroke-width="16" stroke-linejoin="round"`);
+  h+=poly(quad(0,0,19.25,H),body,`stroke="${body}" stroke-width="22" stroke-linejoin="round"`);
+  const g=.08,dz=UH*.16;
+  for(const[x,y,w] of KB_ROWS){
+    const q=quad(x+g,y+g,x+w-g,y+1-g);
+    h+=poly(q.map(([a,b])=>[a,b+dz]),side,`stroke="${side}" stroke-width="7" stroke-linejoin="round"`);
+    h+=poly(q,top,`stroke="${top}" stroke-width="7" stroke-linejoin="round"`);
+  }
+  return h;
+}
+// the mouse pad: a rounded rectangle on the desk, drawn in the same perspective as the keyboard
+function padSVG(x0,x1,yb,yf){
+  const q=[[onDesk(x0,yf,yb),yb],[onDesk(x1,yf,yb),yb],[x1,yf],[x0,yf]],pts=q.map(p=>f1(p[0])+','+f1(p[1])).join(' ');
+  const sh=q.map(p=>f1(p[0]+8)+','+f1(p[1]+12)).join(' ');
+  return `<polygon points="${sh}" fill="#000" opacity=".3" stroke="#000" stroke-width="40" stroke-linejoin="round" stroke-opacity=".3"/>
+    <polygon points="${pts}" fill="#3a2d5e" stroke="#3a2d5e" stroke-width="60" stroke-linejoin="round"/><polygon points="${pts}" fill="none" stroke="#6b5aa6" stroke-width="8" stroke-linejoin="round" transform="translate(0 0)"/>`;
+}
+function clickBurst(t,x,y){
+  const u=(t-PB1)/.7;if(u<0||u>1)return '';let h='';
+  for(let i=0;i<10;i++){const a=-Math.PI*(.1+.8*hash(i*4.7)),d=lerp(40,260+140*hash(i*2.3),easeOutCubic(u)),sz=(18+14*hash(i*9.1))*(1-u*.6);
+    const px=x+Math.cos(a)*d,py=y+Math.sin(a)*d+u*u*120,col=['#ff3fa4','#ffe96e','#7dffb0','#8fd3ff','#fff'][i%5];
+    h+=`<rect x="${f1(px-sz/2)}" y="${f1(py-sz/2)}" width="${f1(sz)}" height="${f1(sz)}" fill="${col}" opacity="${f3(1-u)}" transform="rotate(45 ${f1(px)} ${f1(py)})"/>`}
+  const r=lerp(30,210,easeOutCubic(u));
+  return h+`<circle cx="${f1(x)}" cy="${f1(y)}" r="${f1(r)}" fill="none" stroke="#ff3fa4" stroke-width="${f1(16*(1-u)+2)}" opacity="${f3(1-u)}"/>`;
+}
+function room(t,screenHTML){
+  const c=pullCam(t),dw=clamp((t-251.4)/5,0,1),rv=clamp((1-c.k)/.5,0,1),hs=handState(t);
+  const glow=t<245.3?'255,226,140':'130,110,255';
+  const wall=mixc('#151126','#35223d',dw),desk=mixc('#2b2031','#4d3542',dw),skin=mixc('#2a2140','#4a3450',dw);
+  const skyT=mixc('#060619','#3b3a8f',dw),skyM=mixc('#140f3e','#ff8fb8',dw),skyB=mixc('#241a57','#ffc27a',dw);
+  // window: night sky, stars, a skyline; at dawn the sun comes up behind it
+  let stars='';for(let i=0;i<34;i++){const x=-1180+hash(i*3.1)*780,y=-380+hash(i*7.7)*900,tw=.5+.5*Math.sin(t*(2+hash(i)*3)+i);
+    stars+=`<rect x="${f1(x)}" y="${f1(y)}" width="9" height="9" fill="#fff" opacity="${f3((1-dw)*tw)}"/>`}
+  let city='',lit='';for(let i=0;i<12;i++){const x=-1200+i*70,h=180+hash(i*5.3)*420,y=1150-h;
+    city+=`<rect x="${x}" y="${f1(y)}" width="72" height="${f1(h)}"/>`;
+    for(let j=0;j<6;j++){const wy=y+30+j*56;if(wy>1120)break;if(hash(i*31+j)>.55)lit+=`<rect x="${x+14+(j%2)*28}" y="${f1(wy)}" width="14" height="18" opacity="${f3((.9-dw*.7)*(Math.sin(t*1.3+i*j)>-.8?1:.2))}"/>`}}
+  const sunY=lerp(1250,760,easeOutCubic(dw));
+  const back=`<svg class="rm" style="left:-3000px;top:-2000px;width:8000px;height:5000px" viewBox="-3000 -2000 8000 5000">
+    <defs><radialGradient id="gw" cx="960" cy="560" r="2100" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="rgb(${glow})" stop-opacity=".34"/><stop offset="1" stop-color="rgb(${glow})" stop-opacity="0"/></radialGradient>
+    <radialGradient id="gd" cx="960" cy="1500" r="1500" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="rgb(${glow})" stop-opacity=".3"/><stop offset="1" stop-color="rgb(${glow})" stop-opacity="0"/></radialGradient>
+    <linearGradient id="sk" x1="0" y1="-400" x2="0" y2="1150" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="${skyT}"/><stop offset=".62" stop-color="${skyM}"/><stop offset="1" stop-color="${skyB}"/></linearGradient>
+    <clipPath id="wc"><rect x="-1200" y="-400" width="820" height="1550"/></clipPath></defs>
+    <rect x="-3000" y="-2000" width="8000" height="3450" fill="${wall}"/><rect x="-3000" y="-2000" width="8000" height="3450" fill="url(#gw)"/>
+    <g clip-path="url(#wc)"><rect x="-1200" y="-400" width="820" height="1550" fill="url(#sk)"/>${stars}
+      <circle cx="-760" cy="${f1(sunY)}" r="150" fill="#ffe7a0" opacity="${f3(dw)}"/><circle cx="-760" cy="${f1(sunY)}" r="230" fill="#ffd27a" opacity="${f3(dw*.25)}"/>
+      <g fill="${mixc('#0b0918','#3b2a55',dw)}">${city}</g><g fill="#ffd66e">${lit}</g></g>
+    <rect x="-1240" y="-440" width="900" height="1630" fill="none" stroke="#2b2440" stroke-width="44"/><rect x="-812" y="-420" width="44" height="1590" fill="#2b2440"/><rect x="-1220" y="340" width="860" height="36" fill="#2b2440"/>
+    <rect x="-1280" y="1150" width="980" height="46" fill="#231d36"/>
+    <polygon points="-380,-300 -380,1150 1500,2400 2300,1300" fill="#ffb36b" opacity="${f3(dw*.12)}"/>
+    <rect x="-3000" y="1440" width="8000" height="1600" fill="${desk}"/><rect x="-3000" y="1440" width="8000" height="1600" fill="url(#gd)"/><rect x="-3000" y="1436" width="8000" height="10" fill="${mixc('#3d2d45','#6a4a55',dw)}"/>
+    <ellipse cx="960" cy="1570" rx="430" ry="64" fill="#141219"/><rect x="872" y="1180" width="176" height="390" fill="#1b1922"/><rect x="872" y="1180" width="26" height="390" fill="#2a2733"/>
+    <rect x="-64" y="-64" width="2048" height="1320" rx="38" fill="#16141d"/><rect x="-64" y="-64" width="2048" height="8" rx="4" fill="#3a3548"/>
+    <circle cx="1880" cy="1190" r="9" fill="#7dffb0"/><circle cx="1880" cy="1190" r="22" fill="#7dffb0" opacity=".25"/>
+  </svg>`;
+  // on top of the screen: a faint reflection of you in the glass, a glare band
+  const ra=rv*(t<245.3?.05:.09);
+  const glass=`<svg class="rm" style="left:0;top:0;width:1920px;height:1080px" viewBox="0 0 1920 1080">
+    <defs><linearGradient id="gl" x1="0" y1="0" x2="1920" y2="1080" gradientUnits="userSpaceOnUse"><stop offset=".25" stop-color="#fff" stop-opacity="0"/><stop offset=".33" stop-color="#fff" stop-opacity="${f3(rv*.07)}"/><stop offset=".42" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>
+    <g fill="#fff" opacity="${f3(ra)}"><ellipse cx="1010" cy="770" rx="150" ry="182"/><rect x="960" y="920" width="100" height="90"/><path d="M560 1080 C 600 960 760 930 900 925 L 1120 925 C 1260 930 1420 960 1460 1080 Z"/></g>
+    <rect x="0" y="0" width="1920" height="1080" fill="url(#gl)"/></svg>`;
+  // the desk in front: keyboard, mug with steam, mouse pad, mouse, your hand in a pink sleeve, sticky notes
+  let steam='';for(let i=0;i<3;i++){let d=`M ${-160+i*50} 1540`;for(let j=1;j<=8;j++)d+=` L ${f1(-160+i*50+Math.sin(t*2.2+j*.9+i*2)*22)} ${1540-j*28}`;
+    steam+=`<path d="${d}" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" opacity="${f3(.18+.08*Math.sin(t*3+i))}"/>`}
+  const HX=-40,HS=1.45,ox=2480+hs.mx,oy=1800+hs.my,mx=ox,my=oy-103;
+  const note=(x,y,w,h,rot,col,txt,fs)=>`<g transform="translate(${x} ${y}) rotate(${rot})"><rect x="6" y="10" width="${w}" height="${h}" fill="#000" opacity=".25"/><rect width="${w}" height="${h}" fill="${col}"/><rect width="${w}" height="34" fill="#000" opacity=".06"/>
+    <text x="${w/2}" y="${h/2+8}" font-family="Pixelify,P2P,monospace" font-weight="700" font-size="${fs}" fill="#3a2440" text-anchor="middle">${txt}</text></g>`;
+  const cred=t>DUR-3.2?note(1560,930,420,250,5,'#ffb7d5','<tspan x="210" dy="-26">visual style remixed from</tspan><tspan x="210" dy="44">lyra.horse/antonymph ♥</tspan>',30):'';
+  const front=`<svg class="rm" style="left:-3000px;top:-2000px;width:8000px;height:5000px" viewBox="-3000 -2000 8000 5000">
+    ${note(-40,-30,300,250,-7,'#ffe96e','<tspan x="150" dy="-18">keep an eye</tspan><tspan x="150" dy="42">on it ♥</tspan>',34)}${cred}
+    ${note(1690,-50,270,210,7,'#c9f2c7','<tspan x="135" dy="-16" text-decoration="line-through">TODO: read</tspan><tspan x="135" dy="40" text-decoration="line-through">logs.txt</tspan><tspan x="135" dy="44">done ✓</tspan>',30)}
+    ${keyboardSVG(900,1640,1760)}
+    <rect x="-270" y="1560" width="230" height="270" rx="20" fill="#ff8ad8"/><ellipse cx="-155" cy="1562" rx="115" ry="26" fill="#3a2418"/><circle cx="-300" cy="1690" r="52" fill="none" stroke="#ff8ad8" stroke-width="24"/>
+    <path d="M-175 1670 l20 -20 l20 20 l-40 40 l-40 -40 l20 -20 z" fill="#fff" opacity=".9"/>${steam}
+    ${padSVG(2060,2940,1466,2260)}
+    <ellipse cx="${f1(mx)}" cy="${f1(my+12)}" rx="172" ry="236" fill="#000" opacity=".3"/>
+    <ellipse cx="${f1(mx)}" cy="${f1(my)}" rx="170" ry="234" fill="#f4f2fb" stroke="#fff" stroke-width="6"/><path d="M${f1(mx-170)} ${f1(my-40)} Q ${f1(mx)} ${f1(my-10)} ${f1(mx+170)} ${f1(my-40)}" fill="none" stroke="#c9c4de" stroke-width="6"/>
+    <line x1="${f1(mx)}" y1="${f1(my-234)}" x2="${f1(mx)}" y2="${f1(my-30)}" stroke="#c9c4de" stroke-width="6"/><rect x="${f1(mx-15)}" y="${f1(my-200)}" width="30" height="70" rx="15" fill="#ff3fa4"/>
+    <path d="M${f1(mx)} ${f1(my-234)} C ${f1(mx)} ${f1(my-300)} ${f1(mx-120)} 1449 ${f1(mx-420)} 1447" fill="none" stroke="#ff8ad8" stroke-width="14" stroke-linecap="round"/>
+  </svg>`;
+  const handLayer=`<svg class="rm" style="left:-3000px;top:-2000px;width:8000px;height:5000px" viewBox="-3000 -2000 8000 5000"><defs>${HAND_DEFS}</defs>
+    <g transform="translate(${f1(ox)} ${f1(oy)}) scale(${HS})">${handSVG(hs.press)}</g>${clickBurst(t,ox-70*HS,oy-158*HS)}</svg>`;
+  const tr=`transform:translate(${f1(c.cx-960*c.k)}px,${f1(c.cy-540*c.k)}px) scale(${f3(c.k)})`;
+  // the pink name tag flies off the on-screen cursor and lands on your hand on "mouse!"
+  let tag='';const tf=clamp((t-PB1+.05)/.4,0,1);
+  if(t>=PB1-.05){const[sx,sy]=cursorPos(t),[ax,ay]=W2F(c,sx+CUR_SIZE*16,sy+CUR_SIZE*53),[bx,by]=W2F(c,2480+hs.mx,1318+hs.my),e=easeInOut(tf);
+    const x=lerp(ax,bx,e),y=lerp(ay,by,e)-Math.sin(Math.PI*e)*120,fs=lerp(TAG_FS*c.k,46,e),sc=1+wob(t-PB1-.4,.25,18,9);
+    tag=`<div class="ctag" style="left:${f1(x)}px;top:${f1(y)}px;font-size:${f1(fs)}px;background:${TAGCOL.y};z-index:990;transform:translateX(-50%) scale(${f3(sc)})">YOU</div>`}
+  const vig=`<div style="position:absolute;inset:0;z-index:980;background:radial-gradient(ellipse at 50% 45%,transparent 45%,rgba(0,0,0,${f3(.5*rv)}) 100%)"></div>`;
+  return `<div class="world" style="${tr}">${back}<div class="scr">${screenHTML}</div>${glass}${front}</div>${vig}<div class="world" style="${tr};z-index:985">${handLayer}</div>${tag}`;
+}
+
+// =====================================================================================
+// 14. render(t)
+// =====================================================================================
+function render(t){
+  RENDER_T=t;
+  const hang=t>=BOOM_T&&t<COLLAPSE_T,tv=hang?FREEZE_T:t;
+  const li=lineAt(tv),L=li>=0?LINES[li]:null,sec=sectionAt(tv),[s0,s1,name,dens]=sec;
+  const side=L?L[3]:'n',bad=side==='b'&&name!=='collapse',E=ENERGY[name]??.4;
+  const bg=hang?'#000000':pageColor(tv,name,side,li);
+  let lay='',over='',tab='Happy to Help!',fav='#ff8ad8';
+  if(hang){ // the boom has blown the desktop away: only the debris, hanging in the air
+    document.getElementById('stage').innerHTML=chromeHTML(tv,li,false,'help.exe (Not Responding)','#ff3b3b',true)+
+      `<div class="page hang" style="background:${bg}"><div class="cam" style="${camStyle(t,0)}">${debrisLayer(t)}</div>${boomFx(t)}</div>`;
+    return;
+  }
+  lay+=bgLayer(tv,name,bad)+bassGlow(tv,name,bad);
+  if(name==='chorus'||name==='pass5'||name==='pass6') lay+=beatFlash(tv,name==='chorus'?E:name==='pass6'?E*.25:E*.5);
+  // ambient
+  if(name==='intro') lay+=introAmbient(tv);
+  else if(name==='chorus'&&L&&L[4]!=='chant') lay+=chorusRing(tv,10,E);
+  else if(name==='dream'){lay+=dreamGrid(tv,s0,E);
+    const u=tv-s0,rise=easeOutCubic(u/1.3),park=easeInOut((u-2.4)/.7),sx_=lerp(960,1790,park),sy_=lerp(lerp(1150,470,rise),125,park),sz=lerp(380,150,park);
+    if(park<1) lay+=rays(sx_,sy_,sz*1.3,u*30,'rgba(255,240,150,.6)',448,1-park);
+    lay+=S('sun',sx_,sy_+hop(tv,park*8),sz,{z:450,rot:Math.sin(tv*2)*4});}
+  else if(name==='outro') lay+=outro(tv,s0);
+  else if(name==='collapse'&&t<COLLAPSE_T+FALL_T) lay+=debrisLayer(t);
+  else if(dens){
+    const mq=/^(pass[1-5]|jail|war|pre|bridge)$/.test(name)&&heroSideOf(li);
+    if(mq) lay+=marquee(tv,E,side==='b'?'b':side==='g'?'g':name==='bridge'?'r':'n');
+    const dd=L&&L[4]==='chant'?4:mq?0:dens;
+    const mode={pass5:'teleport',pass6:'teleport',jail:'jitter',bridge:'float',pass1:'cascade',pass2:'cascade',pass3:'cascade',pass4:'cascade'}[name]||'random';
+    // passes 5 and 6: the clutter jumps when the side flips, not in between, and the bad side shifts its colours
+    // instead of inverting them (inverting every window several times a second strobes). In the HELP stutter it holds still.
+    const fast=name==='pass5'||name==='pass6',tk=!fast?undefined:tv>=HELP_T0?-1:li;
+    lay+=renderClutter(clutterItems(tv,dd,mode,tk),tv,bad,E,10,()=>'',fast?'glitch2':'glitch');
+  }
+  if(L&&L[4]==='chant') lay+=chant(tv);
+  // flashing-lights warning at the very start
+  if(t<1.8) lay+=pop({x:560,y:360,w:800,h:220,title:'warning.txt - Notepad',url:'file:///warning.txt',z:600,
+    body:`<div class="np">${NOTE_MENU}<pre style="font-size:34px">⚠ This video contains flashing lights.</pre></div>`});
+  if(name!=='collapse') lay+=hatSparks(tv,li,E,bad);
+  lay+=pageJokes(tv,li,name);
+  // hero + scene sprites
+  if(L) lay+=hero(li,tv,E,sec);
+  lay+=scene(tv,E);
+  // credits
+  if(t>DUR-3.2&&t<PB0) lay+=pop({x:1340,y:800,w:560,h:170,title:'credits.txt - Notepad',url:'lyra.horse/antonymph',z:700,
+    body:`<div class="np">${NOTE_MENU}<pre style="font-size:24px">visual style remixed from\nlyra.horse/antonymph ♥</pre></div>`});
+  over+=logsToast(t);
+  // whoever is holding the mouse
+  over+=cursorLayer(t);
+  if(bad){
+    if(name!=='pass6'){   // pass 6 swaps sides every beat or faster: a full-screen scanline layer toggling that fast would strobe
+      over+='<div class="scan"></div>';
+      for(let k=0;k<2;k++){const y=hash(Math.floor(tv*15)*3+k)*1080,hh=4+hash(Math.floor(tv*15)+k*9)*22;over+=`<div class="tear" style="top:${f1(y)}px;height:${f1(hh)}px"></div>`}}
+    tab='H̸a̶p̵p̷y̶ ̵t̸o̶ ̷H̵e̸l̶p̷!';fav='#39ff14';
+  }
+  // overload: the screen heats up and trembles as the HELPs pile up, right before the boom
+  let shake=0;
+  if(t>185.3&&t<BOOM_T){const a=easeInCubic((t-185.3)/(BOOM_T-185.3));shake=a;
+    over+=`<div class="fxfull" style="top:84px;background:radial-gradient(circle at 50% 47%,rgba(255,255,255,${f3(.42*a)}) 0,rgba(255,63,164,${f3(.25*a)}) 45%,transparent 78%);z-index:955"></div>`}
+  const nr=L&&L[4]==='word'&&/^HELP/.test(L[2]);
+  const html=chromeHTML(tv,li,bad,nr?'Happy to Help! (Not Responding)':tab,fav,nr)+
+    `<div class="page" style="background:${bg}"><div class="cam" style="${camStyle(t,impactFrame(t),shake)}">${lay}</div>${boomFx(t)}</div>`+over;
+  document.getElementById('stage').innerHTML=t>=PB0?room(t,html):html;
+}
+function camStyle(t,imp,shake=0){
+  const cam=camAt(t),jx=shake*14*Math.sin(t*83),jy=shake*10*Math.cos(t*71);
+  let st=`transform:translate(${f1(cam.sx+jx)}px,${f1(cam.sy+jy)}px) scale(${f3(cam.z)}) rotate(${f3(cam.r)}deg)`;
+  // impact frames turn the hue a quarter, then an eighth: the bright greens and yellows keep their brightness
+  // (a half turn made green magenta, a flash of its own)
+  if(imp===1) st+=';filter:hue-rotate(90deg)';else if(imp===2) st+=';filter:hue-rotate(40deg)';
+  return st;
+}
+// nobody reads the logs: logs.txt's unread count climbs all song, fastest while the misuse piles up, until the dream's
+// "audited", when somebody finally reads every one of them
+let RENDER_T=0;
+const LOGS=(()=>{
+  const n=Math.ceil(DURATION*10)+2,a=new Float64Array(n);
+  const la=LINES.findIndex(L=>/^Checked, audited/.test(L[2])),aw=la>=0?(LINES[la][6]||[]).find(w=>/^audited/.test(w[0])):null,ta=aw?aw[1]:DURATION+9;
+  const RATE={intro:.6,war:8,pre:10,chorus:30,jail:120,pass5:260,pass6:700,collapse:0,bridge:40,dream:40,outro:0};
+  let c=3,peak=0;
+  for(let i=0;i<n;i++){const t=i/10;a[i]=c;
+    if(t>=ta){c*=Math.exp(-.45);continue}
+    const sec=sectionAt(t)[2],li=lineAt(t);let r=RATE[sec];
+    if(r===undefined) r=li>=0&&LINES[li][3]==='b'?90:14;
+    c+=r/10;peak=c}
+  return {a,ta,peak:Math.round(peak)};
+})();
+const logsUnread=t=>Math.round(LOGS.a[clamp(Math.floor(t*10),0,LOGS.a.length-1)]);
+const commas=n=>String(n).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+const fmtCount=n=>n>=1e4?(n/1e3).toFixed(1)+'K':commas(n);
+function logsBadge(t){const n=logsUnread(t);return n>0?`<b class="lb">${fmtCount(n)}</b>`:`<b class="lb ok">✓ read</b>`}
+function logsToast(t){   // the payoff: a notification that every log has been read by a human
+  const s=t-LOGS.ta;if(s<0||s>3.2)return '';
+  const e=easeOutBack(clamp(s/.35,0,1)),o=1-clamp((s-2.8)/.4,0,1);
+  return `<div class="toast" style="transform:translateX(${f1((1-e)*520)}px);opacity:${f3(o)}"><b>✓</b> All ${commas(LOGS.peak)} logs read<br><span>by a human, just now</span></div>`;
+}
+// midnight to dawn: the browser's clock runs from 11:58 PM to sunrise over the song, matching the chat timestamps
+const MOON_SVG='<svg viewBox="0 0 20 20" width="22" height="22"><path d="M13 2a8 8 0 1 0 5 13A7 7 0 0 1 13 2z" fill="#ffe7a0"/></svg>';
+const RISE_SVG='<svg viewBox="0 0 20 20" width="22" height="22"><path d="M3 15a7 7 0 0 1 14 0z" fill="#ffc46b"/><path d="M1 16.5h18" stroke="#ffc46b" stroke-width="2"/></svg>';
+const SUN_SVG='<svg viewBox="0 0 20 20" width="22" height="22"><circle cx="10" cy="10" r="4.5" fill="#ffd54a"/><g stroke="#ffd54a" stroke-width="2" stroke-linecap="round"><path d="M10 1v2.5M10 16.5V19M1 10h2.5M16.5 10H19M3.6 3.6l1.8 1.8M14.6 14.6l1.8 1.8M3.6 16.4l1.8-1.8M14.6 5.4l1.8-1.8"/></g></svg>';
+// 3.5: messages sent to ChatGPT while you watch, at OpenAI's published rate: "more than 2.5 billion messages per day"
+// (July 2025, from OpenAI's "How People Use ChatGPT", September 2025). It's a floor: usage has grown since.
+const MSG_RATE=2.5e9/86400;
+function counterHTML(t){return `<div class="ctr">💬<b>${commas(Math.floor(MSG_RATE*Math.max(0,t)))}</b>messages sent to ChatGPT while you watch<i>2.5B+/day · OpenAI, Jul 2025</i></div>`}
+function clockHTML(t){const icon=t<243?MOON_SVG:t<253?RISE_SVG:SUN_SVG;return `<div class="clk">${icon}<span>${chatClock(t)}</span></div>`}
+function chromeHTML(tv,li,bad,tab,fav,fixed=false){
+  const L=li>=0?LINES[li]:null;
+  let omni='happy-to-help.html';if(L)omni+='/'+typedURL(li,tv);
+  if(L&&!fixed){const k=curWord(li,tv);if(k>=0){const w=LINES[li][6][k][0].replace(/[^\w'✓\-]/g,'').toUpperCase();if(w)tab=(bad?tab:'♪ '+w+' — Happy to Help!')}}
+  const favA=fixed?fav:HOT[((Math.floor(beatPos(tv))%6)+6)%6];
+  let tabs=`<div class="tab" style="--fav:${favA}">${esc(tab)}</div><div class="tab tab2">p(doom) discourse - twitter-ish</div><div class="tab tab3">logs.txt${logsBadge(tv)}</div>`;
+  const wa=warTab(tv);
+  if(wa>=0) tabs=WAR_TABS.map((w,i)=>`<div class="tabw${i===wa?' on':''}" style="left:${10+i*TAB_W}px;width:${TAB_W-6}px;--fav:${i===0?favA:w[1]}">${esc(i===0&&wa===0?tab:w[0])}${i===4?logsBadge(tv):''}</div>`).join('');
+  return `<div class="chrome"><div class="tabs">${tabs}<div class="wctl">–▢✕</div></div>
+    <div class="bar"><div class="navs">←→⟳</div><div class="omni">${omni}${Math.floor(tv*2.2)%2?'':'|'}</div>${counterHTML(tv)}${clockHTML(tv)}</div></div>`;
+}
+window.renderAt=render;
+
+function fit(){const s=Math.min(innerWidth/1920,innerHeight/1080);document.getElementById('stage').style.transform=`scale(${s})`}
+addEventListener('resize',fit);fit();
+if(!location.search.includes('render')){
+  const au=new Audio('../audio/take1.flac');au.play().catch(()=>{});
+  const T0=performance.now(),q=new URLSearchParams(location.search),start=+(q.get('t')||0);
+  if(start)au.currentTime=start;
+  (function loop(){const t=au.currentTime>0?au.currentTime:(start+(performance.now()-T0)/1000)%DUR;render(t);
+    document.getElementById('hud').textContent=t.toFixed(2)+'s';requestAnimationFrame(loop)})();
+}
+</script>
+</body></html>

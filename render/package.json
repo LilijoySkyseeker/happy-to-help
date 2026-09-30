@@ -1,0 +1,7 @@
+{
+  "name": "happy-to-help-render",
+  "private": true,
+  "type": "module",
+  "description": "Deterministic renderer for the Happy to Help! music video",
+  "dependencies": { "playwright": "^1.55.0" }
+}

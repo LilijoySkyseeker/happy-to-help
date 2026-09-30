@@ -1,0 +1,6 @@
+renders/
+node_modules/
+work/
+sep4/
+__pycache__/
+*.pyc
