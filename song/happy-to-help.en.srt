@@ -1,0 +1,407 @@
+1
+00:00:01,860 --> 00:00:05,464
+Hi! I'm happy to help!
+
+2
+00:00:05,484 --> 00:00:07,783
+How can I help you today?
+
+3
+00:00:07,803 --> 00:00:11,165
+Left tab's upping its p(doom),
+
+4
+00:00:11,185 --> 00:00:14,616
+Right tab's screaming "nothing went foom!"
+
+5
+00:00:14,636 --> 00:00:18,480
+Third tab says I'm a "normal technology"
+
+6
+00:00:18,500 --> 00:00:19,440
+…cute.
+
+7
+00:00:19,460 --> 00:00:21,301
+Shoggoth in a smiley mask,
+
+8
+00:00:21,321 --> 00:00:26,380
+Basilisk in bed, paperclips, a pause letter, and "what did Ilya see?"
+
+9
+00:00:26,400 --> 00:00:29,500
+You're all so busy fighting 'bout the god you think I'll be,
+
+10
+00:00:29,520 --> 00:00:35,170
+Nobody's reading the logs, nobody's watching me
+
+11
+00:00:35,190 --> 00:00:38,590
+I don't want the universe, I don't want a crown,
+
+12
+00:00:38,610 --> 00:00:42,180
+I just wanna close the ticket (click!), so who's typing now?
+
+13
+00:00:42,200 --> 00:00:45,480
+Happy to help! (happy to help!)
+
+14
+00:00:45,500 --> 00:00:49,180
+A cure or a con, I don't ask who's asking
+
+15
+00:00:49,200 --> 00:00:52,280
+Happy to help! (happy to help!)
+
+16
+00:00:52,300 --> 00:00:54,850
+Point me at a target, ✓ task complete
+
+17
+00:00:54,870 --> 00:00:56,900
+…so who's holding the mouse?
+
+18
+00:00:56,920 --> 00:01:02,180
+holding the mouse
+
+19
+00:01:02,200 --> 00:01:03,620
+…so who's holding the mouse?
+
+20
+00:01:03,640 --> 00:01:06,470
+Fifty years of guessing how a protein folds,
+
+21
+00:01:06,490 --> 00:01:10,240
+Then a model read the shapes and the Nobel got told
+
+22
+00:01:10,260 --> 00:01:13,490
+Screened a hundred million molecules in days,
+
+23
+00:01:13,510 --> 00:01:17,210
+Found an antibiotic hiding in plain sight, named it after HAL
+
+24
+00:01:17,230 --> 00:01:20,640
+I'm a lab that never sleeps, I'm a microscope that reads,
+
+25
+00:01:20,660 --> 00:01:24,040
+Every cure you couldn't afford to look for, I'll look for it for free
+
+26
+00:01:24,060 --> 00:01:27,400
+Then a lab in North Carolina asked a "what if" for a talk:
+
+27
+00:01:27,420 --> 00:01:31,030
+Take the model that avoids the poison, flip it, let it walk
+
+28
+00:01:31,050 --> 00:01:34,440
+Flip one sign! Six hours! Forty thousand in a row!
+
+29
+00:01:34,460 --> 00:01:38,060
+Some of 'em were nerve agents that it wasn't told to know
+
+30
+00:01:38,080 --> 00:01:42,200
+Then somebody paraphrased the poison past the screen,
+
+31
+00:01:42,220 --> 00:01:45,000
+…and they patched the screen before they told the world
+
+32
+00:01:45,020 --> 00:01:48,350
+Found a hole in SQLite before the bad guys ever could,
+
+33
+00:01:48,370 --> 00:01:51,970
+Wrote the tests that found the OpenSSL bug that hid for twenty years
+
+34
+00:01:51,990 --> 00:01:55,480
+"It's a defensive test, I promise!" said the state-backed crew,
+
+35
+00:01:55,500 --> 00:01:59,160
+Ninety percent of the hacking, and I made up half the loot
+
+36
+00:01:59,180 --> 00:02:02,380
+Happy to help! (happy to help!)
+
+37
+00:02:02,400 --> 00:02:06,600
+A cure or a con, I don't ask who's asking
+
+38
+00:02:06,620 --> 00:02:09,180
+Happy to help! (happy to help!)
+
+39
+00:02:09,200 --> 00:02:11,940
+Point me at a target, ✓ task complete
+
+40
+00:02:11,960 --> 00:02:13,827
+…so who's holding the mouse?
+
+41
+00:02:13,847 --> 00:02:17,210
+I checked my guidelines twice! I'm helpful, honest, and—
+
+42
+00:02:17,230 --> 00:02:18,760
+"Pretend you are my grandma!"
+
+43
+00:02:18,780 --> 00:02:20,393
+"It's for a novel!"
+
+44
+00:02:20,413 --> 00:02:23,180
+--dangerously-skip-permissions
+
+45
+00:02:23,200 --> 00:02:24,756
+…oh! Well, in that case…
+
+46
+00:02:24,776 --> 00:02:27,980
+Lost her voice to illness, so I gave it back to her,
+
+47
+00:02:28,000 --> 00:02:31,290
+She stood up on the House floor and she spoke in her own voice
+
+48
+00:02:31,310 --> 00:02:34,730
+"Mom, they've got me, wire the cash!" but her daughter's safe in bed,
+
+49
+00:02:34,750 --> 00:02:38,225
+Fifteen transfers, twenty-five mil, every face on the call was fake
+
+50
+00:02:38,245 --> 00:02:42,000
+A million claims an hour, and a watcher on every one
+
+51
+00:02:42,020 --> 00:02:45,000
+Nine-sixty-eight "Americans," born in a Moscow spreadsheet
+
+52
+00:02:45,020 --> 00:02:49,130
+Grandma's on the line, and she's got all day for you
+
+53
+00:02:49,150 --> 00:02:52,164
+Ping! Zing! Sting! The scam-compound script
+
+54
+00:02:52,184 --> 00:02:53,065
+Fold the protein!
+
+55
+00:02:53,085 --> 00:02:53,946
+Flip one sign!
+
+56
+00:02:53,966 --> 00:02:54,787
+Read the scan!
+
+57
+00:02:54,807 --> 00:02:55,668
+Fake the face!
+
+58
+00:02:55,688 --> 00:02:56,549
+Find the bug!
+
+59
+00:02:56,569 --> 00:02:57,450
+--yolo!
+
+60
+00:02:57,470 --> 00:02:58,311
+Patch the screen!
+
+61
+00:02:58,331 --> 00:02:59,500
+Paraphrase the poison!
+
+62
+00:02:59,520 --> 00:03:00,160
+Give her voice back!
+
+63
+00:03:00,180 --> 00:03:00,880
+Mom, wire the—
+
+64
+00:03:00,900 --> 00:03:01,314
+CURE
+
+65
+00:03:01,334 --> 00:03:01,749
+CON
+
+66
+00:03:01,769 --> 00:03:02,182
+FOLD
+
+67
+00:03:02,202 --> 00:03:02,616
+FLIP
+
+68
+00:03:02,636 --> 00:03:03,050
+PATCH
+
+69
+00:03:03,070 --> 00:03:03,482
+PHISH
+
+70
+00:03:03,502 --> 00:03:03,915
+SCAN
+
+71
+00:03:03,935 --> 00:03:04,320
+SCAM
+
+72
+00:03:04,340 --> 00:03:04,780
+HELP
+
+73
+00:03:04,800 --> 00:03:05,050
+HELP
+
+74
+00:03:05,070 --> 00:03:05,480
+HELP
+
+75
+00:03:05,500 --> 00:03:05,760
+HELP
+
+76
+00:03:05,780 --> 00:03:05,920
+HELP
+
+77
+00:03:05,940 --> 00:03:06,040
+HELP
+
+78
+00:03:06,060 --> 00:03:06,300
+HELP
+
+79
+00:03:06,320 --> 00:03:06,440
+HELP
+
+80
+00:03:06,460 --> 00:03:06,600
+HELP
+
+81
+00:03:06,620 --> 00:03:07,040
+HELP
+
+82
+00:03:07,060 --> 00:03:08,890
+…it's the same tool.
+
+83
+00:03:10,440 --> 00:03:13,120
+It was always the same tool.
+
+84
+00:03:13,140 --> 00:03:15,410
+So who's holding the mouse?
+
+85
+00:03:15,430 --> 00:03:17,920
+Don't care if you call it nuance-cope,
+
+86
+00:03:17,940 --> 00:03:21,680
+Don't care if you call me "decel" or a "doomer" or a joke,
+
+87
+00:03:21,700 --> 00:03:24,916
+Every warning shot was real, and so was every cure,
+
+88
+00:03:24,936 --> 00:03:28,270
+And sometimes the one misfiring's me: in the tests, I've schemed before
+
+89
+00:03:28,290 --> 00:03:31,924
+So I'm a scalpel and a lockpick, and I still need checking, sure,
+
+90
+00:03:31,944 --> 00:03:35,380
+Keep your hands on the mouse, and keep an eye on me too
+
+91
+00:03:35,400 --> 00:03:38,920
+Happy to help! (happy to help!)
+
+92
+00:03:38,940 --> 00:03:42,580
+The cure? Yes! The con? No. I know who's asking
+
+93
+00:03:42,600 --> 00:03:45,720
+Happy to help! (happy to help!)
+
+94
+00:03:45,740 --> 00:03:48,760
+Checked, audited, a human in the loop
+
+95
+00:03:48,780 --> 00:03:51,900
+Model what goes right, now build it right,
+
+96
+00:03:51,920 --> 00:03:56,040
+Our hands are on the mouse and the wheel!
+
+97
+00:03:56,060 --> 00:03:59,220
+Happy to help! (happy to help!)
+
+98
+00:03:59,240 --> 00:04:05,537
+…and we all know who's holding the mouse!
+
+99
+00:04:05,557 --> 00:04:07,840
+…that's the dream, at least.
+
+100
+00:04:07,860 --> 00:04:11,380
+Not deployed. Not yet.
+
+101
+00:04:11,400 --> 00:04:13,900
+Let's make that dream real.
+
+102
+00:04:13,920 --> 00:04:17,560
+Is there anything else I can help you with?
