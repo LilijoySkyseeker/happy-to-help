@@ -1,6 +1,6 @@
 # REPLICATE.md — for AI coding agents
 
-You are an agent helping a person make a lyric music video like *Happy to Help!* from their own song. This file gives you the pipeline, the data contracts, the commands and the traps. For the reasons behind the choices, read [README.md](README.md). The code in this repo is MIT and a working reference; the song, lyrics and video are not licensed for reuse, so replace them.
+You are an agent helping a person make a lyric music video like *Happy to Help!* from their own song. This file gives you the pipeline, the data contracts, the commands and the traps. For the reasons behind the choices, read [README.md](README.md). The code is GPL-3.0-or-later and the media (song, lyrics, sprites, video) are CC BY-SA 4.0, so derivatives must stay under the same licences and credit the original.
 
 ## 0. Principles (do not skip)
 
@@ -82,6 +82,10 @@ Pattern to copy: every visual element is computed from `(t, line index, seed)`, 
 ## 5. Commands
 
 ```bash
+# with Nix (pins Chromium, ffmpeg and fonts): whole video, or chosen chunks
+nix run .            # or: nix run . -- "184 186"
+nix develop          # shell with node, ffmpeg, python, browser and fonts
+
 # render (from render/): one chunk per core; boundaries on whole seconds
 npm install && npx playwright install chromium
 FFMPEG=ffmpeg bash render-chunks.sh full "0 64" "64 129" "129 193" "193 257.56"

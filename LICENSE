@@ -1,32 +1,33 @@
-MIT License (code and sprites)
+Happy to Help! — licences
+Copyright (C) 2026 Lilijoy Skyseeker
 
-Copyright (c) 2026 Lilijoy Skyseeker
+This project is copyleft. Use it, remix it and share it, and keep it free for
+the next person.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+CODE: GNU General Public License v3.0 or later (full text in COPYING)
+  Everything that runs: render/*.html, *.js, *.mjs, *.sh, *.py, audio/**/*.py
+  and flake.nix.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU General Public License as published by the Free Software
+  Foundation, either version 3 of the License, or (at your option) any later
+  version. It is distributed WITHOUT ANY WARRANTY; see COPYING for details.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+MEDIA: Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
+  (full text in LICENSE-MEDIA, summary at https://creativecommons.org/licenses/by-sa/4.0/)
+  The song "Happy to Help!" (audio/take1.flac), its lyrics (song/ and the lyric
+  text in render/timeline.js), the pixel-art sprites (render/sprites.js), the
+  timing data (audio/**/*.json) and the finished video, including renders you
+  make from this repo.
 
----
+  Attribution: "Happy to Help!" by Lilijoy Skyseeker, CC BY-SA 4.0,
+  https://github.com/LilijoySkyseeker/happy-to-help
 
-This licence covers the code and the sprites (render/*.html, *.js, *.mjs, *.sh,
-*.py and audio/**/*.py). It does NOT cover:
+  The song was generated with Suno from Lilijoy's lyrics and style prompt. Parts
+  of it may not be protected by copyright at all; where they are, this licence
+  applies.
 
-- the song "Happy to Help!", its lyrics and the finished video: audio/,
-  song/ and the lyric text in render/timeline.js are (c) 2026 Lilijoy Skyseeker,
-  all rights reserved;
-- the fonts in render/fonts, which are under the SIL Open Font License 1.1
-  (see render/fonts/licenses).
+FONTS: SIL Open Font License 1.1 (render/fonts/licenses), from their authors.
+
+VISUAL STYLE: remixed from Lyra Rebane's website for Vylet Pony's ANTONYMPH,
+  https://lyra.horse/antonymph/. The code here is new; please keep this credit.

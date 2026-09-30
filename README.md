@@ -99,7 +99,15 @@ A last render step, `flashguard.py`, watches every region of the frame. When a r
 
 ## Render it yourself
 
-You need Node 18+, Python 3 with numpy, and an ffmpeg with libx264.
+**With Nix** (flakes enabled), one command renders the whole video:
+
+```bash
+nix run github:LilijoySkyseeker/happy-to-help
+```
+
+It copies the project into `./happy-to-help`, renders four chunks in parallel, adds the song through the flash guard, runs the flash check, and leaves the video at `happy-to-help/renders/full.mp4`. It took about 20 minutes on a 4-core machine. The browser, ffmpeg and fonts are pinned by nixpkgs, so your render matches mine. To render just one moment, pass chunks: `nix run github:LilijoySkyseeker/happy-to-help -- "184 186"`. Inside a checkout, `nix run .` renders there, and `nix develop` gives you a shell with everything for editing.
+
+**Without Nix** you need Node 18+, Python 3 with numpy, and an ffmpeg with libx264:
 
 ```bash
 cd render
@@ -108,11 +116,9 @@ npx playwright install chromium  # the headless browser
 FFMPEG=ffmpeg bash render-chunks.sh full "0 64" "64 129" "129 193" "193 257.56"
 ```
 
-That renders four chunks in parallel (one per CPU core) and joins them. The flash guard then adds the song, and the flash check checks the result. The video lands in `renders/full.mp4`. It took about 20 minutes on a 4-core cloud machine.
+The page also uses system fonts (DejaVu Sans, Liberation Sans, Noto Color Emoji). A machine without them renders slightly different text.
 
 To watch it live, open `render/index.html` in a browser. It plays the song and draws the page at the current position.
-
-Fonts matter. Besides the bundled fonts, the page uses system fonts (DejaVu Sans, Liberation Sans, Noto Color Emoji). A machine without them renders slightly different text.
 
 ## What's here
 
@@ -127,12 +133,15 @@ Fonts matter. Besides the bundled fonts, the page uses system fonts (DejaVu Sans
 | `render/flashcheck2.py`, `flashguard.py` | The flash check, and the last render step that holds flashing under the limit. |
 | `audio/` | The song, plus the scripts that turned it into timing data. |
 | `song/` | The Suno style prompt and lyrics as pasted. |
+| `flake.nix` | One-command render with Nix. |
 | `REPLICATE.md` | Instructions for an AI coding agent that wants to make a video like this. |
 
 ## Credits and licences
 
+This project is copyleft: use it, remix it, share it, and keep it free for the next person. Details are in [LICENSE](LICENSE).
+
+- **Code:** GNU GPL v3 or later ([COPYING](COPYING)).
+- **Song, lyrics, sprites, timing data and the video** (including your own renders): [CC BY-SA 4.0](LICENSE-MEDIA). Credit it as: "Happy to Help!" by Lilijoy Skyseeker, CC BY-SA 4.0, with a link to this repo.
 - **Visual style** is remixed from Lyra Rebane's website for Vylet Pony's *ANTONYMPH*: <https://lyra.horse/antonymph/>. ♥
-- **Code and sprites:** MIT, see [LICENSE](LICENSE).
-- **Song, lyrics and the video itself:** © 2026 Lilijoy Skyseeker, all rights reserved. That covers `audio/`, `song/` and the lyrics in `render/timeline.js`. You may render the video from this repo to see how it works; please don't re-upload it.
 - **Fonts:** Press Start 2P, VT323, Bangers, Silkscreen and Pixelify Sans, under the SIL Open Font License 1.1. The licences are in [render/fonts/licenses](render/fonts/licenses).
 - Made with Claude (Anthropic), which wrote the code with me, and Suno, which made the audio from my lyrics and style prompt.
